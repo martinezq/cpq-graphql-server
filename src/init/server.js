@@ -90,7 +90,7 @@ async function replaceApolloServer(server, app, path) {
 }
 
 async function createInitialApolloServer(path) {
-    const typeDefs = 'type Query { status: String }'
+    const typeDefs = 'type Query { status: String, _a: String }'
     const resolvers = {
         Query: {
             status: () => 'init'

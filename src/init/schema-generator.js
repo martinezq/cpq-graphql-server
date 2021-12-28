@@ -11,28 +11,32 @@ async function generateSchema(baseUrl, headers) {
 
         const { data } = resp;
         const jsonData = JSON.parse(parser.toJson(data));
+        // const resources = [jsonData.resources.resource[0]];
         const resources = jsonData.resources.resource;
 
-        console.log(resources);
+        // console.log(resources);
 
-        const types = resources.map(r => `
-            type ${r.name} {
-                id: ID!
-                revisionId: ID!
-                name: String                
-            }
-        `);
+        const types = resources.map(r => {
+            const attributes = r.attributes.attribute.map(a => `${normalizeAttributeName(a.name)}: String`);
+            return `
+                type ${r.name} {
+                    ${attributes.join('\n')}
+                }
+                `;
+        });
 
-        const queries = resources.map(r => `    ${r.name.toLowerCase()}: [${r.name}]`);
+        const queries = resources.map(r => `    ${r.name}List: [${r.name}]`);
 
         const schema = `
             type Query {
                 status: String
-                ${queries}
+                ${queries.join('\n')}
             }
 
             ${types.join('\n')}
         `;
+
+        // console.log(schema);
 
         return schema;
 
@@ -40,6 +44,10 @@ async function generateSchema(baseUrl, headers) {
         // console.log(e.message);
         return Promise.reject(e.message);
     }
+}
+
+function normalizeAttributeName(name) {
+    return name.replace(/-/, '');
 }
 
 module.exports = {
