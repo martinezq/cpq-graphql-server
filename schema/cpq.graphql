@@ -1,0 +1,27 @@
+enum TicketPriority {
+  Blocker
+  Critical
+  Major
+  Minor
+  Trivial
+}
+
+###############################################################################
+
+type Query {
+  tickets: [Ticket]
+}
+
+type Mutation {
+  addTicket(summary: String!, description: String!, priority: TicketPriority! = Minor): Ticket
+}
+
+type Ticket {
+  id: ID!
+  summary: String
+}
+
+interface Object {
+  id: ID!
+  revisionId: ID!
+}
