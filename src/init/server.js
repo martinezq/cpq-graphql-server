@@ -27,7 +27,7 @@ async function handlePath(req, res, next, app) {
     if (routes[path]) {
         // console.log('FOUND apollo server for', path);
 
-        if (routes[path].state === 'init' && req.headers.baseurl) {
+        if (routes[path].state === 'init' && req.headers.authorization) {
 
             const typeDefs = 'type Query { status: String }'
             const resolvers = {
