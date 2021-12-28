@@ -1,53 +1,31 @@
-const axios = require('axios').default;
 const parser = require('xml2json');
 
-async function generateSchema(baseUrl, headers) {
-    const url = `${baseUrl}/api/describe`;
+async function generateSchema(structure) {
 
-    console.log('LOADING schema from', url);
-
-    try {
-        const resp = await axios.get(url, { headers: { Authorization: headers.authorization } });
-
-        const parsed = parseResponse(resp);
-
-        console.log(JSON.stringify(parsed, null, 2))
-
-        const { data } = resp;
-        const jsonData = JSON.parse(parser.toJson(data));
-        // const resources = [jsonData.resources.resource[0]];
-        const resources = jsonData.resources.resource;
-
-        // console.log(resources);
-
-        const types = parsed.map(r => {
-            const attributes = r.attributes.map(a => `${a.gqlName}: ${a.gqlType}`);
-            return `
-                type ${r.name} {
-                    ${attributes.join('\n')}
-                }
-                `;
-        });
-
-        const queries = parsed.map(r => `    ${r.gqlQueryName}: [${r.gqlName}]`);
-
-        const schema = `
-            type Query {
-                status: String
-                ${queries.join('\n')}
+    const types = structure.map(r => {
+        const attributes = r.attributes.map(a => `${a.gqlName}: ${a.gqlType}`);
+        return `
+            type ${r.name} {
+                ${attributes.join('\n')}
             }
-
-            ${types.join('\n')}
         `;
+    });
 
-        // console.log(schema);
+    const queries = structure.map(r => `    ${r.gqlQueryName}: [${r.gqlName}]`);
 
-        return schema;
+    const schema = `
+        type Query {
+            status: String
+            ${queries.join('\n')}
+        }
 
-    } catch (e) {
-        // console.log(e.message);
-        return Promise.reject(e.message);
-    }
+        ${types.join('\n')}
+    `;
+
+    // console.log(schema);
+
+    return schema;
+
 }
 
 function parseResponse(resp) {
@@ -55,13 +33,12 @@ function parseResponse(resp) {
     const jsonData = JSON.parse(parser.toJson(data));
     const resources = jsonData.resources.resource;
 
-    // return resources;
-
     return resources.map(r => {
         return {
+            name: r.name,
             gqlName: r.name,
             gqlQueryName: r.name + 'List',
-            name: r.name,
+            apiType: r.name.toLowerCase(),
             attributes: r.attributes.attribute.map(a => {
                 return {
                     name: a.name,
@@ -94,5 +71,6 @@ function toGraphQLType(attribute) {
 }
 
 module.exports = {
+    parseResponse,
     generateSchema
 }
