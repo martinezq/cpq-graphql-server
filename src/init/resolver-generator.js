@@ -91,8 +91,11 @@ async function addResource(context, args, structure) {
 
 async function updateResource(context, args, structure) {
     const resource = await getResource(context, args, structure);
-    const args2 = { ...args, _id: resource._latestVersion };
-    const resp = await cpq.update(context, structure.apiType, args2);
+
+    const args2 = await resolveLookups(context, args, structure);
+    const args3 = { ...args2, _id: resource._latestVersion };
+
+    const resp = await cpq.update(context, structure.apiType, args3);
     const _id = extractLatestIdFromLocationHeader(resp.headers);
     return getResource(context, { _id }, structure);
 }
@@ -100,27 +103,14 @@ async function updateResource(context, args, structure) {
 async function updateManyResource(context, args, structure) {
     const list = await listResources(context, { ...args, params: { limit: 1000 }}, structure);
 
-    const pairs = R.toPairs(args.attributes);
-    const lookups = pairs.filter(p => p[1].lookup && !p[1]._id).map(p => ({ name: p[0], lookup: p[1].lookup }));
-
-    const lookupResult = await Promise.all(lookups.map(async (l) => {
-        const lookupStructure = structure.attributes.find(a => a.name === l.name).resource;
-        const resp = await listResources(context, { criteria: l.lookup, params: { limit: 1 } }, lookupStructure);
-
-        return { key: l.ley, value: R.head(resp) };
-    }));
-
-    const attributes2 = R.mapObjIndexed((v, k) => {
-        if (v.lookup) return { _id: lookupResult.find(x => x.key === v.key)?.value._id }
-        return v;
-    }, args.attributes);
+    const args2 = await resolveLookups(context, args, structure);
 
     let count = 0;
 
     // One at a time
     await list.reduce((p, c) => p.then(async () => {
-        const args2 = { _id: c._latestVersion, attributes: attributes2 };
-        const resp = await cpq.update(context, structure.apiType, args2);
+        const args3 = { ...args2, _id: c._latestVersion };
+        const resp = await cpq.update(context, structure.apiType, args3);
         count++;
         return resp;
     }), Promise.resolve());
@@ -142,6 +132,25 @@ async function deleteManyResource(context, args, structure) {
     }), Promise.resolve());
 
     return count;
+}
+
+async function resolveLookups(context, args, structure) {
+    const pairs = R.toPairs(args.attributes);
+    const lookups = pairs.filter(p => p[1].lookup && !p[1]._id).map(p => ({ name: p[0], lookup: p[1].lookup }));
+
+    const lookupResult = await Promise.all(lookups.map(async (l) => {
+        const lookupStructure = structure.attributes.find(a => a.name === l.name).resource;
+        const resp = await listResources(context, { criteria: l.lookup, params: { limit: 1 } }, lookupStructure);
+
+        return { key: l.ley, value: R.head(resp) };
+    }));
+
+    const attributes2 = R.mapObjIndexed((v, k) => {
+        if (v.lookup) return { _id: lookupResult.find(x => x.key === v.key)?.value._id }
+        return v;
+    }, args.attributes);
+
+    return { ...args, attributes: attributes2};
 }
 
 function extractLatestIdFromLocationHeader(headers) {
