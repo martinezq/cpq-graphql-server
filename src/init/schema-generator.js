@@ -28,6 +28,11 @@ async function generateSchema(structure) {
                 ${attributesPlain.join('\n')}
             }
 
+            input ${r.name}Ref {
+                _id: ID
+                lookup: ${r.name}Attributes
+            }
+
             type ${r.name} @cacheControl(maxAge: 5) {
                 _id: ID
                 _rev: ID
@@ -111,7 +116,7 @@ function parseResponse(resp) {
     const jsonData = JSON.parse(parser.toJson(data));
     const resources = jsonData.resources.resource;
 
-    return resources.map(r => {
+    let result = resources.map(r => {
         return {
             name: r.name,
             gqlName: r.name,
@@ -127,6 +132,7 @@ function parseResponse(resp) {
             attributes: r.attributes.attribute.map(a => {
                 return {
                     name: a.name,
+                    referencedType: a.referencedType,
                     gqlName: toGraphQLName(a),
                     type: a.type,
                     gqlType: toGraphQLType(a),
@@ -135,6 +141,16 @@ function parseResponse(resp) {
             })
         }
     });
+
+    result.forEach(r => {
+        r.attributes.forEach(a => {
+            if (a.referencedType) {
+                a.resource = result.find(x => x.name === a.referencedType);
+            }
+        });
+    });
+
+    return result;
 }
 
 function toGraphQLName(attribute) {
@@ -168,9 +184,9 @@ function toGraphQLType(attribute) {
 function toGraphQLTypeInput(attribute) {
     switch(attribute.type) {
         case 'Reference':
-            return 'Ref';
+            return attribute.referencedType + 'Ref';
         case 'StrongReference':
-            return 'Ref';
+            return 'ID';
         case 'Boolean':
             return 'Boolean';
         case 'Integer':

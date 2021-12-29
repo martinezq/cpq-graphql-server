@@ -100,11 +100,26 @@ async function updateResource(context, args, structure) {
 async function updateManyResource(context, args, structure) {
     const list = await listResources(context, { ...args, params: { limit: 1000 }}, structure);
 
+    const pairs = R.toPairs(args.attributes);
+    const lookups = pairs.filter(p => p[1].lookup && !p[1]._id).map(p => ({ name: p[0], lookup: p[1].lookup }));
+
+    const lookupResult = await Promise.all(lookups.map(async (l) => {
+        const lookupStructure = structure.attributes.find(a => a.name === l.name).resource;
+        const resp = await listResources(context, { criteria: l.lookup, params: { limit: 1 } }, lookupStructure);
+
+        return { key: l.ley, value: R.head(resp) };
+    }));
+
+    const attributes2 = R.mapObjIndexed((v, k) => {
+        if (v.lookup) return { _id: lookupResult.find(x => x.key === v.key)?.value._id }
+        return v;
+    }, args.attributes);
+
     let count = 0;
 
     // One at a time
     await list.reduce((p, c) => p.then(async () => {
-        const args2 = { _id: c._latestVersion, attributes: args.attributes };
+        const args2 = { _id: c._latestVersion, attributes: attributes2 };
         const resp = await cpq.update(context, structure.apiType, args2);
         count++;
         return resp;
