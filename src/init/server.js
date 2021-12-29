@@ -1,6 +1,7 @@
 const fs = require('fs');
 const express = require('express');
 const { ApolloServer } = require('apollo-server-express');
+const responseCachePlugin = require('apollo-server-plugin-response-cache').default;
 
 const cpq = require('../client/cpq-env-client');
 const schema = require('./schema-generator');
@@ -107,6 +108,8 @@ async function createInitialApolloServer(path) {
 }
 
 async function createApolloServer(path, typeDefs, resolvers) {
+    const cache = responseCachePlugin();
+
     const server = new ApolloServer({
         typeDefs,
         resolvers,
@@ -115,7 +118,12 @@ async function createApolloServer(path, typeDefs, resolvers) {
             headers: {
                 authorization: req.headers.authorization
             }
-        })
+        }),
+        formatError: (err) => {
+            console.log(err);
+            return err;
+        },
+        plugins: [cache],
     });
 
     return Promise.resolve(server);

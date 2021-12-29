@@ -8,22 +8,22 @@ async function generateSchema(structure) {
         const criteria = r.attributes.map(a => `${a.gqlName}: String`);
         
         return `
-            enum ${r.gqlQueryName}QuerySortBy {
+            enum ${r.gqlListQueryName}QuerySortBy {
                 ${attributeNames.join('\n')}
             }
 
-            input ${r.gqlQueryName}QueryParams {
+            input ${r.gqlListQueryName}QueryParams {
                 limit: Int
                 offset: Int
-                sort: ${r.gqlQueryName}QuerySortBy
+                sort: ${r.gqlListQueryName}QuerySortBy
                 order: Order
             }
 
-            input ${r.gqlQueryName}QueryCriteria {
+            input ${r.gqlListQueryName}QueryCriteria {
                 ${criteria.join('\n')}
             }
 
-            type ${r.name} {
+            type ${r.name} @cacheControl(maxAge: 5) {
                 _id: ID
                 _rev: ID
                 _latestVersion: ID
@@ -36,7 +36,13 @@ async function generateSchema(structure) {
         `;
     });
 
-    const queries = structure.map(r => `${r.gqlQueryName}(criteria: ${r.gqlQueryName}QueryCriteria, params: ${r.gqlQueryName}QueryParams): [${r.gqlName}]`);
+    const queries = structure.map(r => `
+        "Get list of ${r.gqlName}s"
+        ${r.gqlListQueryName}(criteria: ${r.gqlListQueryName}QueryCriteria, params: ${r.gqlListQueryName}QueryParams): [${r.gqlName}]
+
+        "Get ${r.gqlName} by id"
+        ${r.gqlGetQueryName}(_id: ID!): ${r.gqlName}
+    `);
 
     const schema = `
         enum Order {
@@ -50,6 +56,17 @@ async function generateSchema(structure) {
         }
 
         ${types.join('\n')}
+
+        enum CacheControlScope {
+            PUBLIC
+            PRIVATE
+          }
+          
+          directive @cacheControl(
+            maxAge: Int
+            scope: CacheControlScope
+            inheritMaxAge: Boolean
+          ) on FIELD_DEFINITION | OBJECT | INTERFACE | UNION
     `;
 
     // console.log(schema);
@@ -67,7 +84,8 @@ function parseResponse(resp) {
         return {
             name: r.name,
             gqlName: r.name,
-            gqlQueryName: r.name + 'List',
+            gqlListQueryName: r.name + 'List',
+            gqlGetQueryName: r.name,
             apiType: r.name.toLowerCase(),
             attributes: r.attributes.attribute.map(a => {
                 return {

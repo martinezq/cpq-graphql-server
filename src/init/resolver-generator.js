@@ -6,28 +6,73 @@ const cpq = require('../client/cpq-env-client');
 
 async function generateResolvers(structure) {
     
+    let resolvers;
+
     let Query = {
         status: () => 'ready'
     };
 
-    structure.forEach(r => Query[r.gqlQueryName] = async (parent, args, context, info) => loadResource(context, args, r))
+    structure.forEach(r => {
+        Query[r.gqlListQueryName] = async (parent, args, context, info) => listResources(context, args, r);
+        Query[r.gqlGetQueryName] = async (parent, args, context, info) => getResource(context, args, r);
+    });
 
-    return { Query }
+    resolvers = {
+        Query
+    }
+
+    structure.forEach(r => {
+        const references = r.attributes.filter(a => a.type === 'Reference');
+       
+        let referenceResolvers = {};
+
+        references.forEach(ar => {
+            referenceResolvers[ar.gqlName] = async (parent, args, context, info) => {
+                const requestedAttributes = info.fieldNodes[0].selectionSet.selections.map(s => s.name.value);
+                const notJustId = Boolean(requestedAttributes.find(x => x !== '_id'));
+                const args2 = parent[ar.gqlName];
+
+                if (args2._id) {
+                    if (notJustId) {
+                        const struct2 = structure.find(x => x.gqlName === ar.gqlType);
+                        return getResource(context, args2, struct2);
+                    } else {
+                        return Promise.resolve({ _id: args2._id });
+                    }
+                }
+            }
+        })
+
+        resolvers[r.gqlName] = referenceResolvers
+    });
+
+    return resolvers;
 }
 
-async function loadResource(context, args, structure) {
+async function listResources(context, args, structure) {
     // console.log(JSON.stringify(context));
     const resp = await cpq.list(context, structure.apiType, args);
 
     return parseResponse(resp, structure);
 }
 
+async function getResource(context, args, structure) {
+    // console.log(JSON.stringify(args));
+    const resp = await cpq.get(context, structure.apiType, args);
+
+    const result = await parseResponse(resp, structure);
+
+    return R.head(result);
+}
+
 async function parseResponse(resp, structure) {
     const { data } = resp;
     const jsonData = JSON.parse(parser.toJson(data));
-    const resources = [jsonData.list.resource].flat().filter(R.identity);
-
+    
     // console.log(JSON.stringify(jsonData, null, 2));
+    
+    const resources = jsonData.list ? [jsonData.list.resource].flat().filter(R.identity) : [jsonData.resource];
+    
     return Promise.resolve(resources.map(e => parseElement(e, structure)));
 }
 
@@ -48,7 +93,14 @@ function parseElement(e, structure) {
 
     attributes.forEach(a => {
         const gqlAttribute = structure.attributes.find(a2 => a2.name === a.name);
-        result[gqlAttribute.gqlName] = a.value;
+
+        if (gqlAttribute.type === 'Reference') {
+            result[gqlAttribute.gqlName] = {
+                _id: a.value
+            };
+        } else {
+            result[gqlAttribute.gqlName] = a.value;
+        }
     })
 
     return result;
