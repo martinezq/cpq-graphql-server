@@ -12,13 +12,25 @@ async function generateResolvers(structure) {
         status: () => 'ready'
     };
 
+    let Mutation = {
+        copyAccount: async (parent, args, context, info) => {
+            console.log(parent, args, context, info);
+        }
+    };
+
     structure.forEach(r => {
         Query[r.gqlListQueryName] = async (parent, args, context, info) => listResources(context, args, r);
         Query[r.gqlGetQueryName] = async (parent, args, context, info) => getResource(context, args, r);
+
+        Mutation[r.gqlCopyMutationName] = async (parent, args, context, info) => copyResource(context, args, r)
+        Mutation[r.gqlAddMutationName] = async (parent, args, context, info) => addResource(context, args, r)
+        Mutation[r.gqlUpdateMutationName] = async (parent, args, context, info) => updateResource(context, args, r)
+        Mutation[r.gqlUpdateManyMutationName] = async (parent, args, context, info) => updateManyResource(context, args, r)
+        Mutation[r.gqlDeleteManyMutationName] = async (parent, args, context, info) => deleteManyResource(context, args, r)
     });
 
     resolvers = {
-        Query
+        Query, Mutation
     }
 
     structure.forEach(r => {
@@ -63,6 +75,67 @@ async function getResource(context, args, structure) {
     const result = await parseResponse(resp, structure);
 
     return R.head(result);
+}
+
+async function copyResource(context, args, structure) {
+    const resp = await cpq.copy(context, structure.apiType, args);
+    const _id = extractIdFromLocationHeader(resp.headers);
+    return getResource(context, { _id }, structure);
+}
+
+async function addResource(context, args, structure) {
+    const resp = await cpq.add(context, structure.apiType, args);
+    const _id = extractLatestIdFromLocationHeader(resp.headers);
+    return getResource(context, { _id }, structure);
+}
+
+async function updateResource(context, args, structure) {
+    const resource = await getResource(context, args, structure);
+    const args2 = { ...args, _id: resource._latestVersion };
+    const resp = await cpq.update(context, structure.apiType, args2);
+    const _id = extractLatestIdFromLocationHeader(resp.headers);
+    return getResource(context, { _id }, structure);
+}
+
+async function updateManyResource(context, args, structure) {
+    const list = await listResources(context, { ...args, params: { limit: 1000 }}, structure);
+
+    let count = 0;
+
+    // One at a time
+    await list.reduce((p, c) => p.then(async () => {
+        const args2 = { _id: c._latestVersion, attributes: args.attributes };
+        const resp = await cpq.update(context, structure.apiType, args2);
+        count++;
+        return resp;
+    }), Promise.resolve());
+
+    return count;
+}
+
+async function deleteManyResource(context, args, structure) {
+    const list = await listResources(context, { ...args, params: { limit: 1000 }}, structure);
+
+    let count = 0;
+
+    // One at a time
+    await list.reduce((p, c) => p.then(async () => {
+        const args2 = { _id: c._latestVersion, attributes: args.attributes };
+        const resp = await cpq.del(context, structure.apiType, args2);
+        count++;
+        return resp;
+    }), Promise.resolve());
+
+    return count;
+}
+
+function extractLatestIdFromLocationHeader(headers) {
+    const { location } = headers;
+    const parsed = location.match(/\/[a-zA-Z0-9]+\/([a-z0-9]+-[a-z0-9]+)/);
+
+    if (parsed) {
+        return parsed[1];
+    }
 }
 
 async function parseResponse(resp, structure) {

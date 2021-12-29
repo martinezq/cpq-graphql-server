@@ -4,6 +4,7 @@ async function generateSchema(structure) {
 
     const types = structure.map(r => {
         const attributes = r.attributes.map(a => `${a.gqlName}: ${a.gqlType}`);
+        const attributesPlain = r.attributes.filter(a => a.gqlName[0] !== '_').map(a => `${a.gqlName}: ${a.gqlTypeInput}`);
         const attributeNames = r.attributes.map(a => `${a.gqlName}`);
         const criteria = r.attributes.map(a => `${a.gqlName}: String`);
         
@@ -23,6 +24,10 @@ async function generateSchema(structure) {
                 ${criteria.join('\n')}
             }
 
+            input ${r.name}Attributes {
+                ${attributesPlain.join('\n')}
+            }
+
             type ${r.name} @cacheControl(maxAge: 5) {
                 _id: ID
                 _rev: ID
@@ -37,12 +42,30 @@ async function generateSchema(structure) {
     });
 
     const queries = structure.map(r => `
-        "Get list of ${r.gqlName}s"
+        "Get list of ${r.gqlNamePlural}"
         ${r.gqlListQueryName}(criteria: ${r.gqlListQueryName}QueryCriteria, params: ${r.gqlListQueryName}QueryParams): [${r.gqlName}]
 
         "Get ${r.gqlName} by id"
         ${r.gqlGetQueryName}(_id: ID!): ${r.gqlName}
     `);
+
+    const mutations = structure.map(r => `
+        "Copy existing ${r.gqlName}"
+        ${r.gqlCopyMutationName}(_id: ID!): ${r.gqlName}
+
+        "Add new ${r.gqlName}"
+        ${r.gqlAddMutationName}(attributes: ${r.name}Attributes!): ${r.gqlName}
+
+        "Update ${r.gqlName}"
+        ${r.gqlUpdateMutationName}(_id: ID!, attributes: ${r.name}Attributes!): ${r.gqlName}
+
+        "Update many ${r.gqlNamePlural}"
+        ${r.gqlUpdateManyMutationName}(criteria: ${r.gqlListQueryName}QueryCriteria!, attributes: ${r.name}Attributes!): Int
+
+        "Delete many ${r.gqlNamePlural}"
+        ${r.gqlDeleteManyMutationName}(criteria: ${r.gqlListQueryName}QueryCriteria!): Int
+    `);
+
 
     const schema = `
         enum Order {
@@ -55,7 +78,15 @@ async function generateSchema(structure) {
             ${queries.join('\n')}
         }
 
+        type Mutation {
+            ${mutations.join('\n')}
+        }
+
         ${types.join('\n')}
+
+        input Ref {
+            _id: ID!
+        }
 
         enum CacheControlScope {
             PUBLIC
@@ -84,15 +115,22 @@ function parseResponse(resp) {
         return {
             name: r.name,
             gqlName: r.name,
+            gqlNamePlural: toPlural(r.name),
             gqlListQueryName: r.name + 'List',
             gqlGetQueryName: r.name,
+            gqlAddMutationName: 'add' + r.name,
+            gqlCopyMutationName: 'copy' + r.name,
+            gqlUpdateMutationName: 'update' + r.name,
+            gqlUpdateManyMutationName: 'updateMany' + toPlural(r.name),
+            gqlDeleteManyMutationName: 'deleteMany' + toPlural(r.name),
             apiType: r.name.toLowerCase(),
             attributes: r.attributes.attribute.map(a => {
                 return {
                     name: a.name,
                     gqlName: toGraphQLName(a),
                     type: a.type,
-                    gqlType: toGraphQLType(a)
+                    gqlType: toGraphQLType(a),
+                    gqlTypeInput: toGraphQLTypeInput(a)
                 }
             })
         }
@@ -103,12 +141,36 @@ function toGraphQLName(attribute) {
     return attribute.name.replace(/-/, '');
 }
 
+function toPlural(val) {
+    const lastIndex = val.length - 1;
+    if (val[lastIndex] === 'y') {
+        return val.slice(0, lastIndex) + 'ies'
+    } else {
+        return val + 's';
+    }
+}
+
 function toGraphQLType(attribute) {
     switch(attribute.type) {
         case 'Reference':
             return attribute.referencedType;
         case 'StrongReference':
             return 'ID';
+        case 'Boolean':
+            return 'Boolean';
+        case 'Integer':
+            return 'Int';
+    }
+    
+    return 'String';
+}
+
+function toGraphQLTypeInput(attribute) {
+    switch(attribute.type) {
+        case 'Reference':
+            return 'Ref';
+        case 'StrongReference':
+            return 'Ref';
         case 'Boolean':
             return 'Boolean';
         case 'Integer':

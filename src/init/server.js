@@ -113,12 +113,14 @@ async function createApolloServer(path, typeDefs, resolvers) {
     const server = new ApolloServer({
         typeDefs,
         resolvers,
-        context: ({ req }) => ({
-            baseurl: `https:/${path}`,
-            headers: {
-                authorization: req.headers.authorization
-            }
-        }),
+        context: async ({ req }) => {
+            return Promise.resolve({
+                baseurl: `https:/${path}`,
+                headers: {
+                    authorization: req.headers.authorization
+                }
+            });
+        },
         formatError: (err) => {
             console.log(err);
             return err;
