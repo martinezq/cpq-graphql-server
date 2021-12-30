@@ -1,28 +1,15 @@
-const fs = require('fs');
 const express = require('express');
 const { ApolloServer } = require('apollo-server-express');
 const responseCachePlugin = require('apollo-server-plugin-response-cache').default;
 
 const cpq = require('../client/cpq-env-client');
-const schema = require('./schema-generator');
-const resolver = require('./resolver-generator');
-
-let routes = {};
+const structureParser = require('./structure-parser');
+const schemaGenerator = require('./schema-generator');
+const resolverGenerator = require('./resolver-generator');
 
 // ----------------------------------------------------------------------------
 
-async function startHttpServer(port) {
-    const app = express();
-
-    const httpServer = app.listen(port, async () => {
-        const host = httpServer.address().host || 'localhost';
-        const port = httpServer.address().port;
-
-        app.use(async (req, res, next) => handlePath(req, res, next, app));
-        
-        console.log(`🚀 Server ready at http://${host}:${port}`);
-    });
-}
+let routes = {};
 
 async function handlePath(req, res, next, app) {
     const path = req.path;
@@ -67,15 +54,17 @@ async function handlePath(req, res, next, app) {
     }
 }
 
+// ----------------------------------------------------------------------------
+
 async function generateSchemaAndResolvers(context) {
     console.log('LOADING schema from', context.baseurl);
 
     const resp = await cpq.describe(context);
-    const structure = schema.parseResponse(resp);
+    const structure = structureParser.parseDescribeResponse(resp);
 
     return {
-        schema: await schema.generateSchema(structure),
-        resolvers: await resolver.generateResolvers(structure)
+        schema: await schemaGenerator.generateSchema(structure),
+        resolvers: await resolverGenerator.generateResolvers(structure)
     }
 }
 
@@ -132,5 +121,5 @@ async function createApolloServer(path, typeDefs, resolvers) {
 }
 
 module.exports = {
-    startHttpServer
+    handlePath
 }
