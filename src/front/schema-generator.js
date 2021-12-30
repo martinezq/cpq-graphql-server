@@ -1,3 +1,5 @@
+const public = require('../common/public-schema');
+
 async function generateSchema(structure) {
 
     const types = structure.map(r => {
@@ -71,19 +73,11 @@ async function generateSchema(structure) {
 
 
     const schema = `
+        ${public.schema}
+
         enum Order {
             asc
             desc
-        }
-
-        input Credentials {
-            user: String!
-            password: String!
-        }
-
-        type AuthHeader {
-            key: String!
-            value: String!
         }
 
         type Query {

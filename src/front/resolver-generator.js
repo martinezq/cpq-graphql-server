@@ -2,6 +2,7 @@ const R = require('ramda');
 const parser = require('xml2json');
 
 const cpq = require('./cpq-client');
+const public = require('../common/public-schema');
 
 
 async function generateResolvers(structure) {
@@ -9,11 +10,12 @@ async function generateResolvers(structure) {
     let resolvers;
 
     let Query = {
+        ...public.resolvers.Query,
         status: () => 'ready',
-        authorizationHeader: (_, args) => generateAuthHeader(args)
     };
 
     let Mutation = {
+        ...public.resolvers.Mutation,
         copyAccount: async (parent, args, context, info) => {
             console.log(parent, args, context, info);
         }
@@ -204,18 +206,6 @@ function parseElement(e, structure) {
     })
 
     return result;
-}
-
-function generateAuthHeader(args) {
-    const { user, password } = args;
-    const str = `${user}:${password}`;
-
-    const value = Buffer.from(str).toString('base64');
-
-    return {
-        key: 'Authorization',
-        value: `Basic ${value}`
-    }
 }
 
 module.exports = {

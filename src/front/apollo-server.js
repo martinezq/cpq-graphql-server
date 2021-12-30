@@ -6,6 +6,7 @@ const cpq = require('./cpq-client');
 const structureParser = require('./structure-parser');
 const schemaGenerator = require('./schema-generator');
 const resolverGenerator = require('./resolver-generator');
+const public = require('../common/public-schema');
 
 // ----------------------------------------------------------------------------
 
@@ -87,30 +88,14 @@ async function replaceApolloServer(server, path) {
 }
 
 async function createInitialApolloServer(path) {
-    const typeDefs = `
-        input Credentials {
-            user: String!
-            password: String!
-        }
-
-        type AuthHeader {
-            key: String!
-            value: String!
-        }
-
-        type Query {
-            status: String
-            authorizationHeader(credentials: Credentials!): AuthHeader
-        } 
-    `;
-
     const resolvers = {
         Query: {
-            status: () => routes[path].state,
-            authorizationHeader: (_, args) => generateAuthHeader(args)
+            ...public.resolvers.Query,
+            status: () => routes[path].state
         }
     };
-    return createApolloServer(path, typeDefs, resolvers);
+    
+    return createApolloServer(path, public.schema, resolvers);
 }
 
 async function createApolloServer(path, typeDefs, resolvers) {
@@ -135,18 +120,6 @@ async function createApolloServer(path, typeDefs, resolvers) {
     });
 
     return Promise.resolve(server);
-}
-
-function generateAuthHeader(args) {
-    const { user, password } = args.credentials;
-    const str = `${user}:${password}`;
-
-    const value = Buffer.from(str).toString('base64');
-
-    return {
-        key: 'Authorization',
-        value: `Basic ${value}`
-    }
 }
 
 module.exports = {
