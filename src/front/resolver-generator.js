@@ -1,7 +1,7 @@
 const R = require('ramda');
 const parser = require('xml2json');
 
-const cpq = require('../client/cpq-env-client');
+const cpq = require('./cpq-client');
 
 
 async function generateResolvers(structure) {
@@ -191,7 +191,9 @@ function parseElement(e, structure) {
     attributes.forEach(a => {
         const gqlAttribute = structure.attributes.find(a2 => a2.name === a.name);
 
-        if (gqlAttribute.type === 'Reference') {
+        if (!gqlAttribute) return;
+
+        if (gqlAttribute?.type === 'Reference') {
             result[gqlAttribute.gqlName] = {
                 _id: a.value
             };

@@ -2,7 +2,7 @@ const express = require('express');
 const { ApolloServer } = require('apollo-server-express');
 const responseCachePlugin = require('apollo-server-plugin-response-cache').default;
 
-const cpq = require('../client/cpq-env-client');
+const cpq = require('./cpq-client');
 const structureParser = require('./structure-parser');
 const schemaGenerator = require('./schema-generator');
 const resolverGenerator = require('./resolver-generator');
