@@ -9,7 +9,8 @@ async function generateResolvers(structure) {
     let resolvers;
 
     let Query = {
-        status: () => 'ready'
+        status: () => 'ready',
+        authorizationHeader: (_, args) => generateAuthHeader(args)
     };
 
     let Mutation = {
@@ -205,6 +206,17 @@ function parseElement(e, structure) {
     return result;
 }
 
+function generateAuthHeader(args) {
+    const { user, password } = args;
+    const str = `${user}:${password}`;
+
+    const value = Buffer.from(str).toString('base64');
+
+    return {
+        key: 'Authorization',
+        value: `Basic ${value}`
+    }
+}
 
 module.exports = {
     generateResolvers

@@ -76,8 +76,19 @@ async function generateSchema(structure) {
             desc
         }
 
+        input Credentials {
+            user: String!
+            password: String!
+        }
+
+        type AuthHeader {
+            key: String!
+            value: String!
+        }
+
         type Query {
             status: String
+            authorizationHeader(credentials: Credentials!): AuthHeader
             ${queries.join('\n')}
         }
 
