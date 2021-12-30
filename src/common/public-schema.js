@@ -11,7 +11,10 @@ const schema = `
     }
 
     type Query {
+        "Check status"
         status: String
+
+        "Generate authorization header from username and password"
         authorizationHeader(credentials: Credentials!): AuthHeader!
     }
 `;
