@@ -10,7 +10,7 @@ function parseDescribeResponse(resp) {
             name: r.name,
             gqlName: r.name,
             gqlNamePlural: toPlural(r.name),
-            gqlListQueryName: 'list' + r.name,
+            gqlListQueryName: 'list' + toPlural(r.name),
             gqlGetQueryName: 'get' + r.name,
             gqlAddMutationName: 'add' + r.name,
             gqlCopyMutationName: 'copy' + r.name,
