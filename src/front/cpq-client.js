@@ -22,7 +22,7 @@ async function describe(context) {
     console.log('GET', url);
 
     const resp = await handleErrors(
-        axios.get(url, { headers: { Authorization: headers.authorization } })
+        axios.get(url, { headers: { Authorization: headers?.authorization } })
     );
 
     return resp;

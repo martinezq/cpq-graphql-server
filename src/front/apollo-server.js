@@ -10,57 +10,99 @@ const public = require('../common/public-schema');
 
 // ----------------------------------------------------------------------------
 
+const KILL_AFTER_MS = 60 * 60 * 1000;
+const PROBE_DELAY_MS = 30 * 1000;
+
 let routes = {};
 
 async function handlePath(req, res, next, app) {
     const path = req.path;
 
-    if (routes[path]) {
-        // console.log('FOUND apollo server for', path);
-
-        if (routes[path].state === 'init' && req.headers.authorization) {
-
-            routes[path].state = 'fetching';
-            const context = routes[path].context;
-
-            try {
-                const serverParams = await generateSchemaAndResolvers({ ...context, headers: req.headers });
-
-                const server = await createApolloServer(path, serverParams.schema, serverParams.resolvers);
-            
-                await replaceApolloServer(server, path);
-                console.log('RECREATED apollo server for', path);
-
-                routes[path].state = 'ready';
-            } catch (e) {
-                console.log(e);
-                routes[path].state = 'error';
-
-                setTimeout(() => routes[path].state = 'init', 5000);
-            }
-        };
-
-        routes[path].router(req, res, next);
-
-    } else {
+    if (!routes[path]) {
         console.log('NOT FOUND apollo server for', path, ', starting...');
+        await initializePath(path, req.headers)
+    }
 
-        const server = await createInitialApolloServer(path);
-        await registerApolloServer(server, path);
+    if (routes[path].state === 'waiting for auth' && req.headers?.authorization) {
+        await initializePath(path, req.headers);
+    }
 
-        console.log('STARTED apollo server under', path)
-        
-        const router = routes[path].router;
+    const router = routes[path].router;
+    
+    if (router) {
         router(req, res, next);
+        routes[path].lastUsedTime = (new Date()).getTime();
+    } else {
+        res.sendStatus(400);
     }
 }
 
 // ----------------------------------------------------------------------------
 
-async function generateSchemaAndResolvers(context) {
-    console.log('LOADING schema from', context.baseurl);
+async function initializePath(path, headers) {
+    if (headers?.authorization) {
+        console.log('INITIALIZING apollo server with remote schema for path', path);
+        return initializePathWithRemoteSchema(path, headers);
+    } else {
+        console.log('INITIALIZING apollo server with default schema for path', path);
+        return initializePathWithDefaultSchema(path);
+    }
+}
 
-    const resp = await cpq.describe(context);
+async function initializePathWithRemoteSchema(path, headers) {
+    try {
+        const { schema, resolvers } = await generateSchemaAndResolvers(path, headers);
+        const server = await createApolloServer(path, schema, resolvers);
+
+        await createOrReplaceApolloServer(server, path);
+        console.log('RECREATED apollo server for', path);
+
+        routes[path] = routes[path] || {};
+        routes[path].state = 'ready';
+        routes[path].lastUsedTime = Date.now();
+        routes[path].schemaHash = schema;
+        
+        async function probe() {
+            if (Date.now() - routes[path].lastUsedTime > KILL_AFTER_MS) {
+                console.log('KILLING unused apollo server for', path, 'after', KILL_AFTER_MS, 'ms');
+                await routes[path].server.stop();
+                routes[path] = undefined;
+            } else {
+                const last = routes[path].lastUsedTime;
+                const { schema, resolvers } = await generateSchemaAndResolvers(path, headers);
+
+                if (schema !== routes[path].schemaHash) {
+                    const server = await createApolloServer(path, schema, resolvers);
+                    await createOrReplaceApolloServer(server, path);
+                    routes[path].lastUsedTime = last;
+                    console.log('REFRESHED apollo server for', path);
+                }
+        
+                setTimeout(() => probe(), PROBE_DELAY_MS);
+            }
+        }
+
+        setTimeout(() => probe(), PROBE_DELAY_MS);
+        
+    } catch (e) {
+        console.log(e);
+        routes[path] = routes[path] || {};
+        routes[path].state = `error: ${e.message}`;
+
+        setTimeout(() => routes[path].state = 'waiting for auth', 5000);
+    }        
+}
+
+async function initializePathWithDefaultSchema(path) {
+    const server = await createInitialApolloServer(path);
+    await registerApolloServer(server, path);
+}
+
+async function generateSchemaAndResolvers(path, headers) {
+    const baseurl = `https:/${path}`
+    console.log('LOADING schema from', baseurl);
+
+    const resp = await cpq.describe({ baseurl, headers });
     const structure = structureParser.parseDescribeResponse(resp);
 
     return {
@@ -75,14 +117,17 @@ async function registerApolloServer(server, path) {
     const router = express.Router();
 
     await server.applyMiddleware({ app: router, path });
-    routes[path] = { router, server, state: 'init', context: { baseurl: `https:/${path}`} };
+    routes[path] = { router, server, state: 'waiting for auth' };
 
     return server;
 }
 
-async function replaceApolloServer(server, path) {
+async function createOrReplaceApolloServer(server, path) {
     const oldRoute = routes[path];
-    await oldRoute.server.stop();
+
+    if (oldRoute) {
+        await oldRoute.server.stop();
+    }
     
     return registerApolloServer(server, path);
 }
