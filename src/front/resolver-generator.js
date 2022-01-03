@@ -67,8 +67,22 @@ async function generateResolvers(structure) {
 async function listResources(context, args, structure) {
     // console.log(JSON.stringify(context));
     const resp = await cpq.list(context, structure.apiType, args);
+    const parsed = await parseResponse(resp, structure);
+    
+    return args.filter ? filterResources(parsed, args.filter) : parsed;
+}
 
-    return parseResponse(resp, structure);
+async function filterResources(parsed, filter) {
+    const rules = R.mapObjIndexed((v, k) => {
+        if (v === null) return x => x === undefined;
+        return R.equals(v);
+    }, filter)
+    
+    const pred = R.where(rules);
+
+    const result = parsed.filter(pred);
+
+    return result;
 }
 
 async function getResource(context, args, structure) {
@@ -179,7 +193,7 @@ async function parseResponse(resp, structure) {
 function parseElement(e, structure) {
     if (!e) return undefined;
 
-    const attributes = e.attributes.attribute;
+    const attributes = [e.attributes.attribute].flat();
 
     let result = {
         _id: e.id,

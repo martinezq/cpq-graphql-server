@@ -64,11 +64,17 @@ async function generateSchema(structure) {
         "Update ${r.gqlName}"
         ${r.gqlUpdateMutationName}(_id: ID!, attributes: ${r.name}Attributes!): ${r.gqlName}
 
-        "Update many ${r.gqlNamePlural}"
-        ${r.gqlUpdateManyMutationName}(criteria: ${r.gqlListQueryName}QueryCriteria!, attributes: ${r.name}Attributes!): Int
+        """Update many ${r.gqlNamePlural} (up to 1000 at once) \n\n
+            *criteria*: server side filtering, works only for indexed attributes \n
+            *filter*: implemented in middleware, slower but works for all attributes  \n
+        """
+        ${r.gqlUpdateManyMutationName}(criteria: ${r.gqlListQueryName}QueryCriteria!, filter: ${r.gqlListQueryName}QueryCriteria, attributes: ${r.name}Attributes!): Int
 
-        "Delete many ${r.gqlNamePlural}"
-        ${r.gqlDeleteManyMutationName}(criteria: ${r.gqlListQueryName}QueryCriteria!): Int
+        """Delete many ${r.gqlNamePlural} (up to 1000 at once) \n\n
+            *criteria*: server side filtering, works only for indexed attributes \n
+            *filter*: implemented in middleware, slower but works for all attributes  \n
+        """
+        ${r.gqlDeleteManyMutationName}(criteria: ${r.gqlListQueryName}QueryCriteria!, filter: ${r.gqlListQueryName}QueryCriteria): Int
     `);
 
 
