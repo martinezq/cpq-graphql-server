@@ -211,9 +211,17 @@ function isPlain(x) {
     return (typeof x === 'string') || (typeof x === 'number') || (typeof x === 'boolean');
 }
 
-function toXML(json) {
+function toXML(json, tag) {
+    if (tag) {
+        if (Array.isArray(json)) {
+            json = json.map(x => ({ [tag]: x }));
+        } else {
+            json = { [tag]: json };
+        }
+    }
+
     if (Array.isArray(json)) {
-        return json.map(toXML);
+        return json.map(x => toXML(x)).join('');
     } else {
         const keys = R.keys(json)
         const tagName = R.head(keys)
@@ -228,7 +236,7 @@ function toXML(json) {
 
         const objectAttributes = childKeys
             .filter(k => !isPlain(child[k]))
-            .map(k => toXML({[k]: child[k]}));
+            .map(k => toXML(child[k], k));
 
         return `<${tagName} ${plainAttributes.join(' ')}>
                     ${objectAttributes.join('\n')}

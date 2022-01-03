@@ -202,7 +202,7 @@ function parseElement(e, structure) {
             };
         } else if (gqlAttribute?.type === 'XML') {
             if (gqlAttribute?.name === 'profiles') {
-                result[gqlAttribute.gqlName] = [a.profiles.organization].flat().map(o => ({ organization: o }));
+                result[gqlAttribute.gqlName] = [a.profiles.organization].flat().map(o => ({ organization: { name: o.name, role: [o.role].flat() } }));
             } else {
                 result[gqlAttribute.gqlName] = JSON.stringify(a);
             }

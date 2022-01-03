@@ -86,7 +86,7 @@ async function generateSchema(structure) {
 
         type Organization {
             name: String
-            role: Role
+            role: [Role]
         }
 
         type Role {
@@ -99,7 +99,7 @@ async function generateSchema(structure) {
 
         input OrganizationInput {
             name: String
-            role: RoleInput
+            role: [RoleInput]
         }
 
         input RoleInput {
