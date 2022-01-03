@@ -65,6 +65,9 @@ function toGraphQLType(attribute) {
             return 'Boolean';
         case 'Integer':
             return 'Int';
+        case 'XML':
+            if (attribute.name === 'profiles') return '[UserProfile]'
+            return 'String';
     }
     
     return 'String';
@@ -80,6 +83,9 @@ function toGraphQLTypeInput(attribute) {
             return 'Boolean';
         case 'Integer':
             return 'Int';
+        case 'XML':
+            if (attribute.name === 'profiles') return '[UserProfileInput]'
+            return;
     }
     
     return 'String';

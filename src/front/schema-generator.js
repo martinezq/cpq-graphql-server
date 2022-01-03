@@ -4,7 +4,7 @@ async function generateSchema(structure) {
 
     const types = structure.map(r => {
         const attributes = r.attributes.map(a => `${a.gqlName}: ${a.gqlType}`);
-        const attributesPlain = r.attributes.filter(a => a.gqlName[0] !== '_').map(a => `${a.gqlName}: ${a.gqlTypeInput}`);
+        const attributesPlain = r.attributes.filter(a => a.gqlName[0] !== '_' && a.gqlTypeInput !== undefined).map(a => `${a.gqlName}: ${a.gqlTypeInput}`);
         const attributeNames = r.attributes.map(a => `${a.gqlName}`);
         const criteria = r.attributes.map(a => `${a.gqlName}: String`);
         
@@ -79,6 +79,32 @@ async function generateSchema(structure) {
             asc
             desc
         }
+
+        type UserProfile {
+            organization: Organization
+        }
+
+        type Organization {
+            name: String
+            role: Role
+        }
+
+        type Role {
+            name: String
+        }
+
+        input UserProfileInput {
+            organization: OrganizationInput
+        }
+
+        input OrganizationInput {
+            name: String
+            role: RoleInput
+        }
+
+        input RoleInput {
+            name: String
+        }        
 
         type Query {
             status: String

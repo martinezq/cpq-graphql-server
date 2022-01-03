@@ -97,14 +97,29 @@ async function add(context, type, args) {
 
     const pairs = R.toPairs(args.attributes);
 
-    const attributesXml = pairs.filter(p => p[1] !== null).map(p => `<attribute name="${p[0]}" value="${p[1]._id || p[1]}"/>`);
-    const attributesNullXml = pairs.filter(p => p[1] === null).map(p => `<attribute name="${p[0]}"/>`);
+    const attributesPlainXml = pairs
+        .filter(p => p[1] !== null && isPlain(p[1]))
+        .map(p => `<attribute name="${p[0]}" value="${p[1]}"/>`);
+    
+    const attributesRefXml = pairs
+        .filter(p => p[1]._id)
+        .map(p => `<attribute name="${p[0]}" value="${p[1]._id}"/>`);
+    
+    const attributesNullXml = pairs
+        .filter(p => p[1] === null)
+        .map(p => `<attribute name="${p[0]}"/>`);
+
+    const attributesArrayXml = pairs
+        .filter(p => Array.isArray(p[1]))
+        .map(p => `<attribute name="${p[0]}"><${p[0]}>${toXML(p[1])}</${p[0]}></attribute>`);
 
     const bodyXml = `
         <resource organization="Global Sales">
             <attributes>
-                ${attributesXml.join('\n')}
+                ${attributesPlainXml.join('\n')}
+                ${attributesRefXml.join('\n')}
                 ${attributesNullXml.join('\n')}
+                ${attributesArrayXml.join('\n')}
             </attributes>
         </resource>    
     `
@@ -190,6 +205,36 @@ async function handleErrors(promise) {
 
         return Promise.reject(new ApolloError(error.message, error.status));
     });
+}
+
+function isPlain(x) {
+    return (typeof x === 'string') || (typeof x === 'number') || (typeof x === 'boolean');
+}
+
+function toXML(json) {
+    if (Array.isArray(json)) {
+        return json.map(toXML);
+    } else {
+        const keys = R.keys(json)
+        const tagName = R.head(keys)
+
+        const child = json[tagName];
+
+        const childKeys = R.keys(child);
+
+        const plainAttributes = childKeys
+            .filter(k => isPlain(child[k]))
+            .map(k => `${k}="${child[k]}"`)
+
+        const objectAttributes = childKeys
+            .filter(k => !isPlain(child[k]))
+            .map(k => toXML({[k]: child[k]}));
+
+        return `<${tagName} ${plainAttributes.join(' ')}>
+                    ${objectAttributes.join('\n')}
+                </${tagName}>`;
+    }
+
 }
 
 module.exports = {

@@ -200,6 +200,12 @@ function parseElement(e, structure) {
             result[gqlAttribute.gqlName] = {
                 _id: a.value
             };
+        } else if (gqlAttribute?.type === 'XML') {
+            if (gqlAttribute?.name === 'profiles') {
+                result[gqlAttribute.gqlName] = [a.profiles.organization].flat().map(o => ({ organization: o }));
+            } else {
+                result[gqlAttribute.gqlName] = JSON.stringify(a);
+            }
         } else {
             result[gqlAttribute.gqlName] = a.value;
         }
