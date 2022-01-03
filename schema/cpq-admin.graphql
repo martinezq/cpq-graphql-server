@@ -9,19 +9,59 @@ enum TicketPriority {
 ###############################################################################
 
 type Query {
-  tickets: [Ticket]
+  listTickets: [Ticket]
+  listDomains(ticket: TicketRef!): [Domain]
+  listGlobalFeatures(ticket: TicketRef!): [GlobalFeature]
+  listModules(ticket: TicketRef!): [Module]
 }
 
-type Mutation {
-  addTicket(summary: String!, description: String!, priority: TicketPriority! = Minor): Ticket
+#type Mutation {
+#  addTicket(summary: String!, description: String!, priority: TicketPriority! = Minor): Ticket
+#}
+
+input TicketRef {
+  _id: ID!
 }
 
 type Ticket {
-  id: ID!
+  _id: ID
   summary: String
 }
 
-interface Object {
-  id: ID!
-  revisionId: ID!
+type Domain {
+  _id: ID
+  name: String
+  description: String
+  elements: [DomainElement]
+}
+
+type NamedDomain {
+  _id: ID
+  name: String
+}
+
+type DomainElement {
+  name: String
+  description: String
+}
+
+type GlobalFeature {
+  name: String
+  description: String
+  initialValue: String
+  domain: NamedDomain
+}
+
+type Module {
+  _id: ID
+  name: String
+  description: String
+  features: [ModuleFeature]
+}
+
+type ModuleFeature {
+  _id: ID
+  name: String
+  description: String
+  domain: NamedDomain
 }
