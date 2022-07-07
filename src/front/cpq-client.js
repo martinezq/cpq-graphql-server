@@ -32,9 +32,9 @@ async function list(context, type, args) {
     const { baseurl, headers } = context;
     const url = `${baseurl}/api-v2/${type}/list`;
 
-    const where = R.toPairs(args.criteria).map(p => `${p[0]}=${p[1]}`);
+    const where = R.toPairs(args.criteria).map(p => `${p[0]}=${p[1]._id || p[1]}`);
 
-    console.log('GET', url, args);
+    console.log('GET', url, args, where);
 
     const options = { 
         params: where.length > 0 ? { ...args.params, where } : { ...args.params },

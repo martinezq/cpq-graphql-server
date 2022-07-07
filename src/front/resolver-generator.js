@@ -66,7 +66,10 @@ async function generateResolvers(structure) {
 
 async function listResources(context, args, structure) {
     // console.log(JSON.stringify(context));
-    const resp = await cpq.list(context, structure.apiType, args);
+    const criteria2 = await resolveLookups(context, { attributes: args.criteria }, structure);
+    const args2 = { ...args, criteria: criteria2.attributes };
+
+    const resp = await cpq.list(context, structure.apiType, args2);
     const parsed = await parseResponse(resp, structure);
     
     return args.filter ? filterResources(parsed, args.filter) : parsed;

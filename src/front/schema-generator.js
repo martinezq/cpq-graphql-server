@@ -21,7 +21,7 @@ async function generateSchema(structure) {
             }
 
             input ${r.gqlListQueryName}QueryCriteria {
-                ${criteria.join('\n')}
+                ${attributesPlain.join('\n')}
             }
 
             input ${r.name}Attributes {
