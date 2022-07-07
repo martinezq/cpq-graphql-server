@@ -33,6 +33,30 @@ async function describe(context) {
     return resp;
 }
 
+async function headers(context, type, args) {
+    const { baseurl, headers } = context;
+    const url = `${baseurl}/api-v2/${type}/headers`;
+
+    const where = R.toPairs(args.criteria).map(p => `${p[0]}=${p[1]._id || p[1]}`);
+
+    console.log('GET', url, args, where);
+
+    const options = { 
+        params: where.length > 0 ? { ...args.params, where } : { ...args.params },
+        headers: { Authorization: headers.authorization },
+        paramsSerializer: (params) => qs.stringify(params, { arrayFormat: 'repeat' })
+    };
+
+    const resp = await handleErrors(
+        axios.get(url, options)
+    );
+
+    // console.log('GET Response', resp.data);
+
+    return resp;
+}
+
+
 async function list(context, type, args) {
     const { baseurl, headers } = context;
     const url = `${baseurl}/api-v2/${type}/list`;
@@ -281,6 +305,7 @@ function toXML(json, tag) {
 
 module.exports = {
     describe,
+    headers,
     list,
     get,
     copy,

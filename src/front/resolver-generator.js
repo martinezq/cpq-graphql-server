@@ -65,12 +65,12 @@ async function generateResolvers(structure) {
     return resolvers;
 }
 
-async function listResources(context, args, structure) {
+async function listResources(context, args, structure, onlyHeaders = false) {
     // console.log(JSON.stringify(context));
     const criteria2 = await resolveLookups(context, { attributes: args.criteria }, structure);
     const args2 = { ...args, criteria: criteria2.attributes };
 
-    const resp = await cpq.list(context, structure.apiType, args2);
+    const resp = onlyHeaders ? await cpq.headers(context, structure.apiType, args2) : await cpq.list(context, structure.apiType, args2);
     const parsed = await parseResponse(resp, structure);
     
     return args.filter ? filterResources(parsed, args.filter) : parsed;
@@ -122,9 +122,9 @@ async function addResourceIfDoesntExist(context, args, structure) {
 
     if (args.check.lookup) {
         const args2 = { criteria: args.check.lookup, params: { limit: 1 } };
-        const res = await listResources(context, args2, structure);
+        const res = await listResources(context, args2, structure, true);
         if (res.length === 1) {
-            return res[0];
+            return getResource(context, { _id: res[0]._id }, structure);;
         }
     }
     
@@ -161,7 +161,7 @@ async function updateManyResource(context, args, structure) {
 }
 
 async function deleteManyResource(context, args, structure) {
-    const list = await listResources(context, { ...args, params: { limit: 1000 }}, structure);
+    const list = await listResources(context, { ...args, params: { limit: 1000 }}, structure, true);
 
     let count = 0;
 
@@ -182,7 +182,7 @@ async function resolveLookups(context, args, structure) {
 
     const lookupResult = await Promise.all(lookups.map(async (l) => {
         const lookupStructure = structure.attributes.find(a => a.name === l.name).resource;
-        const resp = await listResources(context, { criteria: l.lookup, params: { limit: 1 } }, lookupStructure);
+        const resp = await listResources(context, { criteria: l.lookup, params: { limit: 1 } }, lookupStructure, true);
 
         return { key: l.name, value: R.head(resp) };
     }));
@@ -211,14 +211,15 @@ async function parseResponse(resp, structure) {
     // console.log(JSON.stringify(jsonData, null, 2));
     
     const resources = jsonData.list ? [jsonData.list.resource].flat().filter(R.identity) : [jsonData.resource];
+    const headers = jsonData.headers ? [jsonData.headers.header].flat().filter(R.identity) : [jsonData.header];
     
-    return Promise.resolve(resources.map(e => parseElement(e, structure)));
+    const list = [].concat(resources).concat(headers).filter(R.identity);
+
+    return Promise.resolve(list.map(e => parseElement(e, structure)));
 }
 
 function parseElement(e, structure) {
     if (!e) return undefined;
-
-    const attributes = [e.attributes.attribute].flat();
 
     let result = {
         _id: e.id,
@@ -231,25 +232,30 @@ function parseElement(e, structure) {
         _organization: e.organization
     };
 
-    attributes.forEach(a => {
-        const gqlAttribute = structure.attributes.find(a2 => a2.name === a.name);
+    if (e.attributes) {
 
-        if (!gqlAttribute) return;
+        const attributes = [e.attributes.attribute].flat();
 
-        if (gqlAttribute?.type === 'Reference') {
-            result[gqlAttribute.gqlName] = {
-                _id: a.value
-            };
-        } else if (gqlAttribute?.type === 'XML') {
-            if (gqlAttribute?.name === 'profiles') {
-                result[gqlAttribute.gqlName] = [a.profiles.organization].flat().map(o => ({ organization: { name: o.name, role: [o.role].flat() } }));
+        attributes.forEach(a => {
+            const gqlAttribute = structure.attributes.find(a2 => a2.name === a.name);
+
+            if (!gqlAttribute) return;
+
+            if (gqlAttribute?.type === 'Reference') {
+                result[gqlAttribute.gqlName] = {
+                    _id: a.value
+                };
+            } else if (gqlAttribute?.type === 'XML') {
+                if (gqlAttribute?.name === 'profiles') {
+                    result[gqlAttribute.gqlName] = [a.profiles.organization].flat().map(o => ({ organization: { name: o.name, role: [o.role].flat() } }));
+                } else {
+                    result[gqlAttribute.gqlName] = JSON.stringify(a);
+                }
             } else {
-                result[gqlAttribute.gqlName] = JSON.stringify(a);
+                result[gqlAttribute.gqlName] = a.value;
             }
-        } else {
-            result[gqlAttribute.gqlName] = a.value;
-        }
-    })
+        });
+    }
 
     return result;
 }
