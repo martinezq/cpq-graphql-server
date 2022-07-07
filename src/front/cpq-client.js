@@ -97,24 +97,32 @@ async function add(context, type, args) {
 
     const pairs = R.toPairs(args.attributes);
 
+    const attributesHeader = pairs
+        .filter(p => p[0]?.indexOf('_') === 0)
+        .map(p => ` ${p[0].substring(1)}="${p[1]}"`);
+
     const attributesPlainXml = pairs
+        .filter(p => p[0]?.indexOf('_') !== 0)
         .filter(p => p[1] !== null && isPlain(p[1]))
         .map(p => `<attribute name="${p[0]}" value="${p[1]}"/>`);
     
     const attributesRefXml = pairs
+        .filter(p => p[0]?.indexOf('_') !== 0)
         .filter(p => p[1]._id)
         .map(p => `<attribute name="${p[0]}" value="${p[1]._id}"/>`);
     
     const attributesNullXml = pairs
+        .filter(p => p[0]?.indexOf('_') !== 0)
         .filter(p => p[1] === null)
         .map(p => `<attribute name="${p[0]}"/>`);
 
     const attributesArrayXml = pairs
+        .filter(p => p[0]?.indexOf('_') !== 0)
         .filter(p => Array.isArray(p[1]))
         .map(p => `<attribute name="${p[0]}"><${p[0]}>${toXML(p[1])}</${p[0]}></attribute>`);
 
     const bodyXml = `
-        <resource organization="Global Sales">
+        <resource ${attributesHeader}>
             <attributes>
                 ${attributesPlainXml.join('\n')}
                 ${attributesRefXml.join('\n')}
@@ -143,12 +151,23 @@ async function update(context, type, args) {
     console.log('PUT', url, args);
 
     const pairs = R.toPairs(args.attributes);
-
-    const attributesXml = pairs.filter(p => p[1] !== null).map(p => `<attribute name="${p[0]}" value="${p[1]._id || p[1]}"/>`);
-    const attributesNullXml = pairs.filter(p => p[1] === null).map(p => `<attribute name="${p[0]}"/>`);
+    
+    const attributesHeader = pairs
+        .filter(p => p[0]?.indexOf('_') === 0)
+        .map(p => ` ${p[0].substring(1)}="${p[1]}"`);
+    
+    const attributesXml = pairs
+        .filter(p => p[0]?.indexOf('_') !== 0)
+        .filter(p => p[1] !== null)
+        .map(p => `<attribute name="${p[0]}" value="${p[1]._id || p[1]}"/>`);
+    
+    const attributesNullXml = pairs
+        .filter(p => p[0]?.indexOf('_') !== 0)
+        .filter(p => p[1] === null)
+        .map(p => `<attribute name="${p[0]}"/>`);
 
     const bodyXml = `
-        <resource organization="Global Sales">
+        <resource ${attributesHeader}>
             <attributes>
                 ${attributesXml.join('\n')}
                 ${attributesNullXml.join('\n')}

@@ -25,6 +25,7 @@ async function generateSchema(structure) {
             }
 
             input ${r.name}Attributes {
+                _organization: String
                 ${attributesPlain.join('\n')}
             }
 
@@ -41,6 +42,7 @@ async function generateSchema(structure) {
                 _modifiedTime: String
                 _modifiedBy: String
                 _owner: String
+                _organization: String
                 ${attributes.join('\n')}
             }
         `;

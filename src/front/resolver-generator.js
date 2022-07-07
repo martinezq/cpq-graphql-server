@@ -204,7 +204,8 @@ function parseElement(e, structure) {
         _state: e.state,
         _modifiedTime: e.modifiedTime,
         _modifiedBy: e.modifiedBy,
-        _owner: e.owner
+        _owner: e.owner,
+        _organization: e.organization
     };
 
     attributes.forEach(a => {
