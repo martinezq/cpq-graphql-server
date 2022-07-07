@@ -63,6 +63,10 @@ async function generateSchema(structure) {
         "Add new ${r.gqlName}"
         ${r.gqlAddMutationName}(attributes: ${r.name}Attributes!): ${r.gqlName}
 
+        "Add new ${r.gqlName} if doesn't exist already (works bad with cache - use with caution)"
+        ${r.gqlAddIfDoesntExistMutationName}(check: ${r.gqlName}Ref, attributes: ${r.name}Attributes!): ${r.gqlName}
+
+
         "Update ${r.gqlName}"
         ${r.gqlUpdateMutationName}(_id: ID!, attributes: ${r.name}Attributes!): ${r.gqlName}
 

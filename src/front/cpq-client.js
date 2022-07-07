@@ -8,9 +8,14 @@ const R = require('ramda');
 const MAX_AGE = 5 * 1000;
 const THRESHOLD = 5 * 1000;
 
+// const axios = Axios.create();
+
+const cache = new Cache({ maxAge: MAX_AGE, max: 100 });
+
 const axios = Axios.create({
+    headers: { 'Cache-Control': 'no-cache' },
     adapter: throttleAdapterEnhancer(
-        cacheAdapterEnhancer(Axios.defaults.adapter, { defaultCache: new Cache({ maxAge: MAX_AGE, max: 100 })}), 
+        cacheAdapterEnhancer(Axios.defaults.adapter, { defaultCache: cache, enabledByDefault: true }), 
         { threshold: THRESHOLD }
     )
 });
@@ -29,6 +34,8 @@ async function describe(context) {
 }
 
 async function list(context, type, args) {
+    console.log(cache.keys());
+
     const { baseurl, headers } = context;
     const url = `${baseurl}/api-v2/${type}/list`;
 
@@ -39,13 +46,14 @@ async function list(context, type, args) {
     const options = { 
         params: where.length > 0 ? { ...args.params, where } : { ...args.params },
         headers: { Authorization: headers.authorization },
-        paramsSerializer: (params) => qs.stringify(params, { arrayFormat: 'repeat' }),
-        cache: false
+        paramsSerializer: (params) => qs.stringify(params, { arrayFormat: 'repeat' })
     };
 
     const resp = await handleErrors(
         axios.get(url, options)
     );
+
+    console.log('GET Response', resp.data);
 
     return resp;
 }
@@ -66,6 +74,8 @@ async function get(context, type, args) {
     const resp = await handleErrors(
         axios.get(url, options)
     );
+
+    console.log('GET Response', resp.data);
 
     return resp;
 }

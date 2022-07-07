@@ -27,6 +27,7 @@ async function generateResolvers(structure) {
 
         Mutation[r.gqlCopyMutationName] = async (parent, args, context, info) => copyResource(context, args, r)
         Mutation[r.gqlAddMutationName] = async (parent, args, context, info) => addResource(context, args, r)
+        Mutation[r.gqlAddIfDoesntExistMutationName] = async (parent, args, context, info) => addResourceIfDoesntExist(context, args, r)
         Mutation[r.gqlUpdateMutationName] = async (parent, args, context, info) => updateResource(context, args, r)
         Mutation[r.gqlUpdateManyMutationName] = async (parent, args, context, info) => updateManyResource(context, args, r)
         Mutation[r.gqlDeleteManyMutationName] = async (parent, args, context, info) => deleteManyResource(context, args, r)
@@ -109,6 +110,25 @@ async function addResource(context, args, structure) {
     const resp = await cpq.add(context, structure.apiType, args2);
     const _id = extractLatestIdFromLocationHeader(resp.headers);
     return getResource(context, { _id }, structure);
+}
+
+async function addResourceIfDoesntExist(context, args, structure) {
+    if (args.check._id) {
+        const res = await getResource(context, { _id: args.check._id}, structure);
+        if (res) {
+            return res;
+        }
+    }
+
+    if (args.check.lookup) {
+        const args2 = { criteria: args.check.lookup, params: { limit: 1 } };
+        const res = await listResources(context, args2, structure);
+        if (res.length === 1) {
+            return res[0];
+        }
+    }
+    
+    return addResource(context, args, structure);
 }
 
 async function updateResource(context, args, structure) {

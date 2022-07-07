@@ -19,6 +19,7 @@ function parseDescribeResponse(resp) {
             gqlListQueryName: 'list' + toPlural(r.name),
             gqlGetQueryName: 'get' + r.name,
             gqlAddMutationName: 'add' + r.name,
+            gqlAddIfDoesntExistMutationName: 'add' + r.name + "IfDoesntExist",
             gqlCopyMutationName: 'copy' + r.name,
             gqlUpdateMutationName: 'update' + r.name,
             gqlUpdateManyMutationName: 'updateMany' + toPlural(r.name),
