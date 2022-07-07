@@ -101,7 +101,9 @@ async function copyResource(context, args, structure) {
 }
 
 async function addResource(context, args, structure) {
-    const resp = await cpq.add(context, structure.apiType, args);
+    const args2 = await resolveLookups(context, args, structure);
+
+    const resp = await cpq.add(context, structure.apiType, args2);
     const _id = extractLatestIdFromLocationHeader(resp.headers);
     return getResource(context, { _id }, structure);
 }
