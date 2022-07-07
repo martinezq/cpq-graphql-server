@@ -34,8 +34,6 @@ async function describe(context) {
 }
 
 async function list(context, type, args) {
-    console.log(cache.keys());
-
     const { baseurl, headers } = context;
     const url = `${baseurl}/api-v2/${type}/list`;
 
@@ -53,7 +51,7 @@ async function list(context, type, args) {
         axios.get(url, options)
     );
 
-    console.log('GET Response', resp.data);
+    // console.log('GET Response', resp.data);
 
     return resp;
 }
@@ -75,7 +73,7 @@ async function get(context, type, args) {
         axios.get(url, options)
     );
 
-    console.log('GET Response', resp.data);
+    // console.log('GET Response', resp.data);
 
     return resp;
 }
