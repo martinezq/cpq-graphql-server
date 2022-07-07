@@ -121,6 +121,12 @@ async function add(context, type, args) {
         .filter(p => Array.isArray(p[1]))
         .map(p => `<attribute name="${p[0]}"><${p[0]}>${toXML(p[1])}</${p[0]}></attribute>`);
 
+    const attributesBom = pairs
+        .filter(p => p[0] === 'bom')
+        .map(p => `<attribute name="bom"><items>${
+            p[1].items.map(i => `<item description="${i.description}" qty="${i.qty || 1}"></item>`).join('\n')
+        }</items></attribute>`);
+
     const bodyXml = `
         <resource ${attributesHeader}>
             <attributes>
@@ -128,6 +134,7 @@ async function add(context, type, args) {
                 ${attributesRefXml.join('\n')}
                 ${attributesNullXml.join('\n')}
                 ${attributesArrayXml.join('\n')}
+                ${attributesBom.join('\n')}
             </attributes>
         </resource>    
     `

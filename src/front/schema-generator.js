@@ -7,7 +7,7 @@ async function generateSchema(structure) {
         const attributesPlain = r.attributes.filter(a => a.gqlName[0] !== '_' && a.gqlTypeInput !== undefined).map(a => `${a.gqlName}: ${a.gqlTypeInput}`);
         const attributeNames = r.attributes.map(a => `${a.gqlName}`);
         const criteria = r.attributes.map(a => `${a.gqlName}: String`);
-        
+
         return `
             enum ${r.gqlListQueryName}QuerySortBy {
                 ${attributeNames.join('\n')}
@@ -113,6 +113,15 @@ async function generateSchema(structure) {
         input RoleInput {
             name: String
         }        
+
+        input BOMInput {
+            items: [BOMItemInput]!
+        }
+
+        input BOMItemInput {
+            description: String
+            qty: Int
+        }
 
         type Query {
             status: String

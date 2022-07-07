@@ -5,6 +5,12 @@ function parseDescribeResponse(resp) {
     const jsonData = JSON.parse(parser.toJson(data));
     const resources = jsonData.resources.resource;
 
+    const bomAttribute = {
+        gqlName: 'bom',
+        gqlType: 'String',
+        gqlTypeInput: 'String'
+    };
+
     let result = resources.map(r => {
         return {
             name: r.name,
@@ -28,6 +34,8 @@ function parseDescribeResponse(resp) {
                     gqlTypeInput: toGraphQLTypeInput(a)
                 }
             })
+            //.concat(r.name === 'ConfiguredProduct' ? [bomAttribute] : undefined)
+            // .filter(x => x !== undefined)
         }
     });
 
@@ -85,6 +93,7 @@ function toGraphQLTypeInput(attribute) {
             return 'Int';
         case 'XML':
             if (attribute.name === 'profiles') return '[UserProfileInput]'
+            if (attribute.name === 'bom') return 'BOMInput'
             return;
     }
     
