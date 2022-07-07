@@ -161,11 +161,11 @@ async function resolveLookups(context, args, structure) {
         const lookupStructure = structure.attributes.find(a => a.name === l.name).resource;
         const resp = await listResources(context, { criteria: l.lookup, params: { limit: 1 } }, lookupStructure);
 
-        return { key: l.ley, value: R.head(resp) };
+        return { key: l.name, value: R.head(resp) };
     }));
 
     const attributes2 = R.mapObjIndexed((v, k) => {
-        if (v.lookup) return { _id: lookupResult.find(x => x.key === v.key)?.value._id }
+        if (v.lookup) return { _id: lookupResult.find(x => x.key === k)?.value._id }
         return v;
     }, args.attributes);
 
