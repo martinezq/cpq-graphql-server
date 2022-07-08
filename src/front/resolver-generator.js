@@ -224,7 +224,7 @@ function parseElement(e, structure) {
     let result = {
         _id: e.id,
         _rev: e.revisionId,
-        _latestVersion: e.latestVersion,
+        _latestVersion: e.latestVersion || (e.id + '-' + e.revisionId),
         _state: e.state,
         _modifiedTime: e.modifiedTime,
         _modifiedBy: e.modifiedBy,
