@@ -63,12 +63,12 @@ async function initializePathWithRemoteSchema(path, headers) {
         routes[path].schemaHash = schema;
         
         async function probe() {
-            if (Date.now() - routes[path].lastUsedTime > KILL_AFTER_MS) {
+            if (Date.now() - routes[path]?.lastUsedTime > KILL_AFTER_MS) {
                 console.log('KILLING unused apollo server for', path, 'after', KILL_AFTER_MS, 'ms');
                 await routes[path].server.stop();
                 routes[path] = undefined;
             } else {
-                const last = routes[path].lastUsedTime;
+                const last = routes[path]?.lastUsedTime;
                 const { schema, resolvers } = await generateSchemaAndResolvers(path, headers);
 
                 if (schema !== routes[path].schemaHash) {
