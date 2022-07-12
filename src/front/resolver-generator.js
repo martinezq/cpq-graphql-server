@@ -178,7 +178,7 @@ async function deleteManyResource(context, args, structure) {
 
 async function resolveLookups(context, args, structure) {
     const pairs = R.toPairs(args.attributes);
-    const lookups = pairs.filter(p => p[1].lookup && !p[1]._id).map(p => ({ name: p[0], lookup: p[1].lookup }));
+    const lookups = pairs.filter(p => p[1]?.lookup && !(p[1]?._id)).map(p => ({ name: p[0], lookup: p[1].lookup }));
 
     const lookupResult = await Promise.all(lookups.map(async (l) => {
         const lookupStructure = structure.attributes.find(a => a.name === l.name).resource;
@@ -188,7 +188,7 @@ async function resolveLookups(context, args, structure) {
     }));
 
     const attributes2 = R.mapObjIndexed((v, k) => {
-        if (v.lookup) return { _id: lookupResult.find(x => x.key === k)?.value._id }
+        if (v?.lookup) return { _id: lookupResult.find(x => x.key === k)?.value._id }
         return v;
     }, args.attributes);
 
@@ -251,6 +251,8 @@ function parseElement(e, structure) {
                 } else {
                     result[gqlAttribute.gqlName] = JSON.stringify(a);
                 }
+            } else if (gqlAttribute?.type === 'Boolean') {
+                result[gqlAttribute.gqlName] = Boolean(a.value);
             } else {
                 result[gqlAttribute.gqlName] = a.value;
             }

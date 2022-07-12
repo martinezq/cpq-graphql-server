@@ -140,7 +140,7 @@ async function add(context, type, args) {
     
     const attributesRefXml = pairs
         .filter(p => p[0]?.indexOf('_') !== 0)
-        .filter(p => p[1]._id)
+        .filter(p => p[1]?._id)
         .map(p => `<attribute name="${p[0]}" value="${p[1]._id}"/>`);
     
     const attributesNullXml = pairs
