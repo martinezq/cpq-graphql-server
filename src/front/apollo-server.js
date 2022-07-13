@@ -71,7 +71,7 @@ async function initializePathWithRemoteSchema(path, headers) {
                 const last = routes[path]?.lastUsedTime;
                 const { schema, resolvers } = await generateSchemaAndResolvers(path, headers);
 
-                if (schema !== routes[path].schemaHash) {
+                if (schema !== routes[path]?.schemaHash) {
                     const server = await createApolloServer(path, schema, resolvers);
                     await createOrReplaceApolloServer(server, path);
                     routes[path].lastUsedTime = last;

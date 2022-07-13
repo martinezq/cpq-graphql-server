@@ -31,6 +31,7 @@ async function generateResolvers(structure) {
         Mutation[r.gqlUpdateMutationName] = async (parent, args, context, info) => updateResource(context, args, r)
         Mutation[r.gqlUpdateManyMutationName] = async (parent, args, context, info) => updateManyResource(context, args, r)
         Mutation[r.gqlDeleteManyMutationName] = async (parent, args, context, info) => deleteManyResource(context, args, r)
+        Mutation['recalculatePricing'] = async (parent, args, context, info) => recalculatePricing(context, args, r)
     });
 
     resolvers = {
@@ -174,6 +175,11 @@ async function deleteManyResource(context, args, structure) {
     }), Promise.resolve());
 
     return count;
+}
+
+async function recalculatePricing(context, args, structure) {
+    await cpq.recalculatePricing(context, 'solution', args);
+    return true;
 }
 
 async function resolveLookups(context, args, structure) {

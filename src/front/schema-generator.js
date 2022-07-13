@@ -135,6 +135,7 @@ async function generateSchema(structure) {
 
         type Mutation {
             ${mutations.join('\n')}
+            recalculatePricing(_id: ID!): Boolean
         }
 
         ${types.join('\n')}

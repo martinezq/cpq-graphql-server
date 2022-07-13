@@ -244,6 +244,24 @@ async function del(context, type, args) {
     return resp;
 }
 
+async function recalculatePricing(context, type, args) {
+    const { baseurl, headers } = context;
+    const id = args._id;
+    const url = `${baseurl}/api-v2/solution/${id}/recalculate-pricing`;
+
+    console.log('POST', url, args);
+
+    const options = { 
+        headers: { Authorization: headers.authorization }
+    };
+
+    const resp = await handleErrors(
+        axios.post(url, null, options)
+    );
+
+    return resp;
+}
+
 async function handleErrors(promise) {
     return promise.catch(e => {
         let error = { message: e.message }
@@ -311,5 +329,6 @@ module.exports = {
     copy,
     add,
     update,
-    del
+    del,
+    recalculatePricing
 };
