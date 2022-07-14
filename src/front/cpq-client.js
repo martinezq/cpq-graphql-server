@@ -131,12 +131,12 @@ async function add(context, type, args) {
 
     const attributesHeader = pairs
         .filter(p => p[0]?.indexOf('_') === 0)
-        .map(p => ` ${p[0].substring(1)}="${p[1]}"`);
+        .map(p => ` ${p[0].substring(1)}="${escapeString(p[1])}"`);
 
     const attributesPlainXml = pairs
         .filter(p => p[0]?.indexOf('_') !== 0)
         .filter(p => p[1] !== null && isPlain(p[1]))
-        .map(p => `<attribute name="${p[0]}" value="${p[1]}"/>`);
+        .map(p => `<attribute name="${p[0]}" value="${escapeString(p[1])}"/>`);
     
     const attributesRefXml = pairs
         .filter(p => p[0]?.indexOf('_') !== 0)
@@ -176,7 +176,7 @@ async function add(context, type, args) {
     };
 
     const resp = await handleErrors(
-        axios.post(url, bodyXml, options)
+        axios.post(url, bodyXml, options), bodyXml
     );
 
     return resp;
@@ -193,12 +193,12 @@ async function update(context, type, args) {
     
     const attributesHeader = pairs
         .filter(p => p[0]?.indexOf('_') === 0)
-        .map(p => ` ${p[0].substring(1)}="${p[1]}"`);
+        .map(p => ` ${p[0].substring(1)}="${escapeString(p[1])}"`);
     
     const attributesXml = pairs
         .filter(p => p[0]?.indexOf('_') !== 0)
         .filter(p => p[1] !== null)
-        .map(p => `<attribute name="${p[0]}" value="${p[1]._id || p[1]}"/>`);
+        .map(p => `<attribute name="${p[0]}" value="${p[1]._id || escapeString(p[1])}"/>`);
     
     const attributesNullXml = pairs
         .filter(p => p[0]?.indexOf('_') !== 0)
@@ -220,7 +220,7 @@ async function update(context, type, args) {
     };
 
     const resp = await handleErrors(
-        axios.put(url, bodyXml, options)
+        axios.put(url, bodyXml, options), bodyXml
     );
 
     return resp;
@@ -238,7 +238,7 @@ async function del(context, type, args) {
     };
 
     const resp = await handleErrors(
-        axios.delete(url,options)
+        axios.delete(url, options)
     );
 
     return resp;
@@ -262,7 +262,7 @@ async function recalculatePricing(context, type, args) {
     return resp;
 }
 
-async function handleErrors(promise) {
+async function handleErrors(promise, body) {
     return promise.catch(e => {
         let error = { message: e.message }
 
@@ -275,6 +275,7 @@ async function handleErrors(promise) {
                     return Promise.reject(new AuthenticationError('Authentication error, check "Authorization" header!'));
             };
 
+            console.log('REQUEST DATA', body);
             return Promise.reject(new ApolloError(r.data, status));
 
         }
@@ -319,6 +320,12 @@ function toXML(json, tag) {
                 </${tagName}>`;
     }
 
+}
+
+function escapeString(val) {
+    if (typeof val !== 'string') return val;
+
+    return val?.replaceAll('&', '&amp;')?.replaceAll('"', '&quot;')?.replaceAll('\\"', '&quot;');
 }
 
 module.exports = {

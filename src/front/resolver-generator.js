@@ -194,7 +194,7 @@ async function resolveLookups(context, args, structure) {
     }));
 
     const attributes2 = R.mapObjIndexed((v, k) => {
-        if (v?.lookup) return { _id: lookupResult.find(x => x.key === k)?.value._id }
+        if (v?.lookup) return { _id: lookupResult.find(x => x.key === k)?.value?._id }
         return v;
     }, args.attributes);
 
