@@ -27,7 +27,7 @@ async function describe(context) {
     console.log('GET', url);
 
     const resp = await handleErrors(
-        axios.get(url, { headers: { Authorization: headers?.authorization } })
+        () => axios.get(url, { headers: { Authorization: headers?.authorization } })
     );
 
     return resp;
@@ -37,7 +37,7 @@ async function headers(context, type, args) {
     const { baseurl, headers } = context;
     const url = `${baseurl}/api-v2/${type}/headers`;
 
-    const where = R.toPairs(args.criteria).map(p => `${p[0]}=${p[1]._id || p[1]}`);
+    const where = R.toPairs(args.criteria).map(p => `${p[0]}=${p[1]?._id || p[1]}`);
 
     console.log('GET', url, args, where);
 
@@ -48,7 +48,7 @@ async function headers(context, type, args) {
     };
 
     const resp = await handleErrors(
-        axios.get(url, options)
+        () => axios.get(url, options)
     );
 
     // console.log('GET Response', resp.data);
@@ -72,7 +72,7 @@ async function list(context, type, args) {
     };
 
     const resp = await handleErrors(
-        axios.get(url, options)
+        () => axios.get(url, options)
     );
 
     // console.log('GET Response', resp.data);
@@ -94,7 +94,7 @@ async function get(context, type, args) {
     };
 
     const resp = await handleErrors(
-        axios.get(url, options)
+        () => axios.get(url, options)
     );
 
     // console.log('GET Response', resp.data);
@@ -114,7 +114,7 @@ async function copy(context, type, args) {
     };
 
     const resp = await handleErrors(
-        axios.post(url, null, options)
+        () => axios.post(url, null, options)
     );
 
     return resp;
@@ -176,7 +176,7 @@ async function add(context, type, args) {
     };
 
     const resp = await handleErrors(
-        axios.post(url, bodyXml, options), bodyXml
+        () => axios.post(url, bodyXml, options), bodyXml
     );
 
     return resp;
@@ -220,7 +220,7 @@ async function update(context, type, args) {
     };
 
     const resp = await handleErrors(
-        axios.put(url, bodyXml, options), bodyXml
+        () => axios.put(url, bodyXml, options), bodyXml
     );
 
     return resp;
@@ -238,7 +238,7 @@ async function del(context, type, args) {
     };
 
     const resp = await handleErrors(
-        axios.delete(url, options)
+        () => axios.delete(url, options)
     );
 
     return resp;
@@ -256,13 +256,16 @@ async function recalculatePricing(context, type, args) {
     };
 
     const resp = await handleErrors(
-        axios.post(url, null, options)
+        () => axios.post(url, null, options)
     );
 
     return resp;
 }
 
-async function handleErrors(promise, body) {
+async function handleErrors(func, body, retries) {
+    retries = retries !== undefined ? retries : 1;
+    const promise = func();
+
     return promise.catch(e => {
         let error = { message: e.message }
 
@@ -271,6 +274,13 @@ async function handleErrors(promise, body) {
             const status = r.status;
             
             switch(status) {
+                case 502:
+                    if (retries > 0) {
+                        console.log('Retrying last command');
+                        return wait(1000).then(() => handleErrors(func, body, retries - 1));
+                    } else {
+                        return Promise.reject(new ApolloError(r.data, status)); 
+                    }
                 case 403:
                     return Promise.reject(new AuthenticationError('Authentication error, check "Authorization" header!'));
             };
@@ -326,6 +336,11 @@ function escapeString(val) {
     if (typeof val !== 'string') return val;
 
     return val?.replaceAll('&', '&amp;')?.replaceAll('"', '&quot;')?.replaceAll('\\"', '&quot;');
+}
+
+async function wait(ms) {
+    ms = ms || 1000;
+    return new Promise(resolve => setTimeout(() => resolve(), ms));
 }
 
 module.exports = {
