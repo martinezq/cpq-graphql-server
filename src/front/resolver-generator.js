@@ -146,9 +146,41 @@ async function updateResource(context, args, structure) {
 }
 
 async function transitionResource(context, args, structure) {
-    const resp = await cpq.transition(context, structure.apiType, args);
-    const _id = extractLatestIdFromLocationHeader(resp.headers);
-    return true;
+    if (!args.transition.id && !args.transition.ids && !args.transition.name && !args.transition.names) {
+        return Promise.reject('No transition information provided!')
+    }
+
+    const transitionIds = args.transition.id ? [args.transition.id] : args.transition.ids;
+    const transitionNames = args.transition.name ? [args.transition.name] : args.transition.names;
+    
+    const transitionResolvedIds = transitionIds ? 
+        transitionIds.map(id => structure.transitions.find(t => t.gqlId === id)?.id) :
+        transitionNames.map(name => structure.transitions.find(t => t.gqlName === name)?.id);
+
+    let count = 0;
+    let errors = [];
+
+    await transitionResolvedIds.reduce((p, c) => p.then(async () => {
+        const args2 = { _id: args._id, transitionId: c };
+        const resp = await cpq.transition(context, structure.apiType, args2)
+            .then(() => count++)
+            .catch(e => {
+                if (args.opts?.ignoreErrors) {
+                    errors.push(e);
+                    return Promise.resolve();
+                } else {
+                    return Promise.reject(e);
+                }
+            });
+        return resp;
+    }), Promise.resolve());    
+
+    return {
+        totalCount: transitionResolvedIds.length,
+        successCount: count,
+        errorCount: transitionResolvedIds.length - count,
+        errors
+    };
 }
 
 async function updateManyResources(context, args, structure) {
@@ -188,15 +220,19 @@ async function deleteManyResources(context, args, structure) {
 async function transitionManyResources(context, args, structure) {
     const list = await listResources(context, { ...args.selector, params: { limit: 1000 }}, structure);
 
-    let count = 0;
+    let totalCount = 0;
+    let successCount = 0;
     let errors = [];
 
     // One at a time
     await list.reduce((p, c) => p.then(async () => {
-        const transitionId = structure.transitions.find(t => t.gqlId === args.transition.id || t.gqlName === args.transition.name)?.id;
-        const args3 = { _id: c._id, transitionId };
-        const resp = await cpq.transition(context, structure.apiType, args3)
-            .then(() => count++)
+        const args2 = { _id: c._id, ...args};
+        const resp = await transitionResource(context, args2, structure)
+            .then(r => {
+                totalCount += r.totalCount;
+                successCount += r.successCount;
+                r.errors.forEach(e => errors.push(e));
+            })
             .catch(e => {
                 if (args.opts?.ignoreErrors) {
                     errors.push(e);
@@ -205,13 +241,14 @@ async function transitionManyResources(context, args, structure) {
                     return Promise.reject(e);
                 }
             });
+
         return resp;
     }), Promise.resolve());
 
     return {
-        totalCount: list.length,
-        successCount: count,
-        errorCount: list.length - count,
+        totalCount,
+        successCount,
+        errorCount: totalCount - successCount,
         errors
     };
 }

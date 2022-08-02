@@ -56,7 +56,9 @@ async function generateSchema(structure) {
 
             input ${r.gqlName}TransitionArgument {
                 id: ${r.gqlName}TransitionId
+                ids: [${r.gqlName}TransitionId]
                 name: ${r.gqlName}TransitionName
+                names: [${r.gqlName}TransitionName]
             }
 
             type ${r.name} @cacheControl(maxAge: 5) {
@@ -96,7 +98,7 @@ async function generateSchema(structure) {
         "Update ${r.gqlName}"
         ${r.gqlUpdateMutationName}(_id: ID!, attributes: ${r.name}Attributes!): ${r.gqlName}
 
-        ${r.gqlTransitionMutationName}(_id: ID!, transitionId: ID!): Boolean
+        ${r.gqlTransitionMutationName}(_id: ID!, transition: ${r.gqlName}TransitionArgument!, opts: MassOperationOptions): MassOperationStatus
 
         """Update many ${r.gqlNamePlural} (up to 1000 at once) \n\n
             *criteria*: server side filtering, works only for indexed attributes \n
