@@ -29,8 +29,10 @@ async function generateResolvers(structure) {
         Mutation[r.gqlAddMutationName] = async (parent, args, context, info) => addResource(context, args, r)
         Mutation[r.gqlAddIfDoesntExistMutationName] = async (parent, args, context, info) => addResourceIfDoesntExist(context, args, r)
         Mutation[r.gqlUpdateMutationName] = async (parent, args, context, info) => updateResource(context, args, r)
-        Mutation[r.gqlUpdateManyMutationName] = async (parent, args, context, info) => updateManyResource(context, args, r)
-        Mutation[r.gqlDeleteManyMutationName] = async (parent, args, context, info) => deleteManyResource(context, args, r)
+        Mutation[r.gqlTransitionMutationName] = async (parent, args, context, info) => transitionResource(context, args, r)
+        Mutation[r.gqlUpdateManyMutationName] = async (parent, args, context, info) => updateManyResources(context, args, r)
+        Mutation[r.gqlDeleteManyMutationName] = async (parent, args, context, info) => deleteManyResources(context, args, r)
+        Mutation[r.gqlTransitionManyMutationName] = async (parent, args, context, info) => transitionManyResources(context, args, r)
         Mutation['recalculatePricing'] = async (parent, args, context, info) => recalculatePricing(context, args, r)
     });
 
@@ -143,7 +145,13 @@ async function updateResource(context, args, structure) {
     return getResource(context, { _id }, structure);
 }
 
-async function updateManyResource(context, args, structure) {
+async function transitionResource(context, args, structure) {
+    const resp = await cpq.transition(context, structure.apiType, args);
+    const _id = extractLatestIdFromLocationHeader(resp.headers);
+    return true;
+}
+
+async function updateManyResources(context, args, structure) {
     const list = await listResources(context, { ...args, params: { limit: 1000 }}, structure);
 
     const args2 = await resolveLookups(context, args, structure);
@@ -161,7 +169,7 @@ async function updateManyResource(context, args, structure) {
     return count;
 }
 
-async function deleteManyResource(context, args, structure) {
+async function deleteManyResources(context, args, structure) {
     const list = await listResources(context, { ...args, params: { limit: 1000 }}, structure, true);
 
     let count = 0;
@@ -175,6 +183,37 @@ async function deleteManyResource(context, args, structure) {
     }), Promise.resolve());
 
     return count;
+}
+
+async function transitionManyResources(context, args, structure) {
+    const list = await listResources(context, { ...args.selector, params: { limit: 1000 }}, structure);
+
+    let count = 0;
+    let errors = [];
+
+    // One at a time
+    await list.reduce((p, c) => p.then(async () => {
+        const transitionId = structure.transitions.find(t => t.gqlId === args.transition.id || t.gqlName === args.transition.name)?.id;
+        const args3 = { _id: c._id, transitionId };
+        const resp = await cpq.transition(context, structure.apiType, args3)
+            .then(() => count++)
+            .catch(e => {
+                if (args.opts?.ignoreErrors) {
+                    errors.push(e);
+                    return Promise.resolve();
+                } else {
+                    return Promise.reject(e);
+                }
+            });
+        return resp;
+    }), Promise.resolve());
+
+    return {
+        totalCount: list.length,
+        successCount: count,
+        errorCount: list.length - count,
+        errors
+    };
 }
 
 async function recalculatePricing(context, args, structure) {
@@ -235,7 +274,9 @@ function parseElement(e, structure) {
         _modifiedTime: e.modifiedTime,
         _modifiedBy: e.modifiedBy,
         _owner: e.owner,
-        _organization: e.organization
+        _organization: e.organization,
+        _state: e.state,
+        _stateId: e.stateId
     };
 
     if (e.attributes) {

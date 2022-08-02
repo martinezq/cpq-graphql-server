@@ -244,6 +244,25 @@ async function del(context, type, args) {
     return resp;
 }
 
+async function transition(context, type, args) {
+    const { baseurl, headers } = context;
+    const id = args._id;
+    const transitionId = args.transitionId;
+    const url = `${baseurl}/api-v2/${type}/${id}/transition/${transitionId}`;
+
+    console.log('POST', url, args);
+
+    const options = { 
+        headers: { Authorization: headers.authorization }
+    };
+
+    const resp = await handleErrors(
+        () => axios.post(url, null, options)
+    );
+
+    return resp;
+}
+
 async function recalculatePricing(context, type, args) {
     const { baseurl, headers } = context;
     const id = args._id;
@@ -282,7 +301,7 @@ async function handleErrors(func, body, retries) {
                         return Promise.reject(new ApolloError(r.data, status)); 
                     }
                 case 403:
-                    return Promise.reject(new AuthenticationError('Authentication error, check "Authorization" header!'));
+                    return Promise.reject(new AuthenticationError('Authentication error, check "Authorization" header and CPQ permissions!'));
             };
 
             console.log('REQUEST DATA', body);
@@ -352,5 +371,6 @@ module.exports = {
     add,
     update,
     del,
+    transition,
     recalculatePricing
 };

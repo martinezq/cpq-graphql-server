@@ -1,3 +1,4 @@
+const fs = require('fs');
 const public = require('../common/public-schema');
 
 async function generateSchema(structure) {
@@ -5,12 +6,22 @@ async function generateSchema(structure) {
     const types = structure.map(r => {
         const attributes = r.attributes.map(a => `${a.gqlName}: ${a.gqlType}`);
         const attributesPlain = r.attributes.filter(a => a.gqlName[0] !== '_' && a.gqlTypeInput !== undefined).map(a => `${a.gqlName}: ${a.gqlTypeInput}`);
+        const searchableAttributesPlain = r.attributes.filter(a => a.searchable).filter(a => a.gqlName[0] !== '_' && a.gqlTypeInput !== undefined).map(a => `${a.gqlName}: ${a.gqlTypeInput}`);
         const attributeNames = r.attributes.map(a => `${a.gqlName}`);
-        const criteria = r.attributes.map(a => `${a.gqlName}: String`);
+        const transitionIds = r.transitions.map(t => t.gqlId);
+        const transitionNames = r.transitions.map(t => t.gqlName);
 
         return `
             enum ${r.gqlListQueryName}QuerySortBy {
                 ${attributeNames.join('\n')}
+            }
+
+            enum ${r.gqlName}TransitionId {
+                ${transitionIds.length > 0 ? transitionIds.join('\n') : '_NO_TRANSITIONS'}
+            }
+
+            enum ${r.gqlName}TransitionName {
+                ${transitionNames.length > 0 ? transitionNames.join('\n') : '_NO_TRANSITIONS'}
             }
 
             input ${r.gqlListQueryName}QueryParams {
@@ -21,7 +32,16 @@ async function generateSchema(structure) {
             }
 
             input ${r.gqlListQueryName}QueryCriteria {
+                ${searchableAttributesPlain.length > 0 ? searchableAttributesPlain.join('\n') : '_no_searchable_attributes: Int'}
+            }
+
+            input ${r.gqlListQueryName}FilterCriteria {
                 ${attributesPlain.join('\n')}
+            }
+
+            input ${r.gqlName}Selector {
+                criteria: ${r.gqlListQueryName}QueryCriteria!
+                filter: ${r.gqlListQueryName}FilterCriteria
             }
 
             input ${r.name}Attributes {
@@ -34,6 +54,11 @@ async function generateSchema(structure) {
                 lookup: ${r.name}Attributes
             }
 
+            input ${r.gqlName}TransitionArgument {
+                id: ${r.gqlName}TransitionId
+                name: ${r.gqlName}TransitionName
+            }
+
             type ${r.name} @cacheControl(maxAge: 5) {
                 _id: ID
                 _rev: ID
@@ -43,6 +68,7 @@ async function generateSchema(structure) {
                 _modifiedBy: String
                 _owner: String
                 _organization: String
+                _stateId: Int
                 ${attributes.join('\n')}
             }
         `;
@@ -70,20 +96,33 @@ async function generateSchema(structure) {
         "Update ${r.gqlName}"
         ${r.gqlUpdateMutationName}(_id: ID!, attributes: ${r.name}Attributes!): ${r.gqlName}
 
+        ${r.gqlTransitionMutationName}(_id: ID!, transitionId: ID!): Boolean
+
         """Update many ${r.gqlNamePlural} (up to 1000 at once) \n\n
             *criteria*: server side filtering, works only for indexed attributes \n
             *filter*: implemented in middleware, slower but works for all attributes  \n
         """
-        ${r.gqlUpdateManyMutationName}(criteria: ${r.gqlListQueryName}QueryCriteria!, filter: ${r.gqlListQueryName}QueryCriteria, attributes: ${r.name}Attributes!): Int
+        ${r.gqlUpdateManyMutationName}(criteria: ${r.gqlListQueryName}QueryCriteria!, filter: ${r.gqlListQueryName}FilterCriteria, attributes: ${r.name}Attributes!): Int
 
         """Delete many ${r.gqlNamePlural} (up to 1000 at once) \n\n
             *criteria*: server side filtering, works only for indexed attributes \n
             *filter*: implemented in middleware, slower but works for all attributes  \n
         """
-        ${r.gqlDeleteManyMutationName}(criteria: ${r.gqlListQueryName}QueryCriteria!, filter: ${r.gqlListQueryName}QueryCriteria): Int
+        ${r.gqlDeleteManyMutationName}(criteria: ${r.gqlListQueryName}QueryCriteria!, filter: ${r.gqlListQueryName}FilterCriteria): Int
+
+        """Transition many ${r.gqlNamePlural} (up to 1000 at once) \n\n
+        *criteria*: server side filtering, works only for indexed attributes \n
+        *filter*: implemented in middleware, slower but works for all attributes  \n
+        """
+        ${r.gqlTransitionManyMutationName}(
+            selector: ${r.gqlName}Selector,
+            transition: ${r.gqlName}TransitionArgument!,
+            opts: MassOperationOptions
+        ): MassOperationStatus
+
     `);
 
-
+//            // 
     const schema = `
         ${public.schema}
 
@@ -127,6 +166,10 @@ async function generateSchema(structure) {
             qty: Int
         }
 
+        input MassOperationOptions {
+            ignoreErrors: Boolean
+        }
+
         type Query {
             status: String
             authorizationHeader(credentials: Credentials!): AuthHeader
@@ -136,6 +179,13 @@ async function generateSchema(structure) {
         type Mutation {
             ${mutations.join('\n')}
             recalculatePricing(_id: ID!): Boolean
+        }
+
+        type MassOperationStatus {
+            totalCount: Int
+            successCount: Int
+            errorCount: Int
+            errors: [String]
         }
 
         ${types.join('\n')}
@@ -157,6 +207,8 @@ async function generateSchema(structure) {
     `;
 
     // console.log(schema);
+
+    fs.writeFileSync('out/schema.gql', schema);
 
     return schema;
 
