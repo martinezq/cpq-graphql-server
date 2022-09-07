@@ -194,22 +194,41 @@ async function update(context, type, args) {
     const attributesHeader = pairs
         .filter(p => p[0]?.indexOf('_') === 0)
         .map(p => ` ${p[0].substring(1)}="${escapeString(p[1])}"`);
-    
-    const attributesXml = pairs
+
+    const attributesPlainXml = pairs
         .filter(p => p[0]?.indexOf('_') !== 0)
-        .filter(p => p[1] !== null)
-        .map(p => `<attribute name="${p[0]}" value="${p[1]._id || escapeString(p[1])}"/>`);
+        .filter(p => p[1] !== null && isPlain(p[1]))
+        .map(p => `<attribute name="${p[0]}" value="${escapeString(p[1])}"/>`);
+    
+    const attributesRefXml = pairs
+        .filter(p => p[0]?.indexOf('_') !== 0)
+        .filter(p => p[1]?._id)
+        .map(p => `<attribute name="${p[0]}" value="${p[1]._id}"/>`);
     
     const attributesNullXml = pairs
         .filter(p => p[0]?.indexOf('_') !== 0)
         .filter(p => p[1] === null)
         .map(p => `<attribute name="${p[0]}"/>`);
 
+    const attributesArrayXml = pairs
+        .filter(p => p[0]?.indexOf('_') !== 0)
+        .filter(p => Array.isArray(p[1]))
+        .map(p => `<attribute name="${p[0]}"><${p[0]}>${toXML(p[1])}</${p[0]}></attribute>`);
+
+    const attributesBom = pairs
+        .filter(p => p[0] === 'bom')
+        .map(p => `<attribute name="bom"><items>${
+            p[1].items.map(i => `<item description="${i.description}" qty="${i.qty || 1}"></item>`).join('\n')
+        }</items></attribute>`);
+
     const bodyXml = `
         <resource ${attributesHeader}>
             <attributes>
-                ${attributesXml.join('\n')}
+                ${attributesPlainXml.join('\n')}
+                ${attributesRefXml.join('\n')}
                 ${attributesNullXml.join('\n')}
+                ${attributesArrayXml.join('\n')}
+                ${attributesBom.join('\n')}
             </attributes>
         </resource>    
     `
