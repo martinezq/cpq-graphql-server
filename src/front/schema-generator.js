@@ -210,6 +210,10 @@ async function generateSchema(structure) {
 
     // console.log(schema);
 
+    if (!fs.existsSync('out')) {
+        fs.mkdirSync('out');
+    }
+    
     fs.writeFileSync('out/schema.gql', schema);
 
     return schema;
