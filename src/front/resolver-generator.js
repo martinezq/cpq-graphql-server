@@ -3,6 +3,7 @@ const parser = require('xml2json');
 
 const cpq = require('./cpq-client');
 const public = require('../common/public-schema');
+const { parse } = require('qs');
 
 
 async function generateResolvers(structure) {
@@ -70,11 +71,27 @@ async function generateResolvers(structure) {
 
 async function listResources(context, args, structure, onlyHeaders = false) {
     // console.log(JSON.stringify(context));
+    const page = args.params?.page || 1000;
+    
     const criteria2 = await resolveLookups(context, { attributes: args.criteria }, structure);
     const args2 = { ...args, criteria: criteria2.attributes };
 
-    const resp = onlyHeaders ? await cpq.headers(context, structure.apiType, args2) : await cpq.list(context, structure.apiType, args2);
-    const parsed = await parseResponse(resp, structure);
+    const listOrHeaders = async (args3) => onlyHeaders ? await cpq.headers(context, structure.apiType, args3) : await cpq.list(context, structure.apiType, args3); 
+
+    const listRecursiveAndParse = async (offset = 0, limit = args.params?.limit || 10) => {
+
+        const resp = await listOrHeaders({ ...args2, params: { limit: limit > page ? page : limit, offset }});
+        const parsed = await parseResponse(resp, structure);
+
+        if (parsed.length === page) {
+            const rest = await listRecursiveAndParse(offset + page, limit - parsed.length);
+            return parsed.concat(rest);
+        }
+
+        return parsed;
+    }
+
+    const parsed = await listRecursiveAndParse();
     
     return args.filter ? filterResources(parsed, args.filter) : parsed;
 }

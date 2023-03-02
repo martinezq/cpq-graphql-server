@@ -26,7 +26,7 @@ async function generateSchema(structure) {
 
             input ${r.gqlListQueryName}QueryParams {
                 limit: Int
-                offset: Int
+                page: Int
                 sort: ${r.gqlListQueryName}QuerySortBy
                 order: Order
             }
