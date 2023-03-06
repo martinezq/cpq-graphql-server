@@ -8,7 +8,9 @@ const R = require('ramda');
 const MAX_AGE = 5 * 1000;
 const THRESHOLD = 5 * 1000;
 
-const axios = Axios.create();
+const axios = Axios.create({
+    timeout: 10000
+});
 
 // const cache = new Cache({ maxAge: MAX_AGE, max: 100 });
 
