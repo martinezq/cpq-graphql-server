@@ -11,7 +11,7 @@ const public = require('../common/public-schema');
 // ----------------------------------------------------------------------------
 
 const KILL_AFTER_MS = 60 * 60 * 1000;
-const PROBE_DELAY_MS = 30 * 1000;
+const PROBE_DELAY_MS = 5 * 60 * 1000;
 
 let routes = {};
 
@@ -68,14 +68,18 @@ async function initializePathWithRemoteSchema(path, headers) {
                 await routes[path].server.stop();
                 routes[path] = undefined;
             } else {
-                const last = routes[path]?.lastUsedTime;
-                const { schema, resolvers } = await generateSchemaAndResolvers(path, headers);
+                try {
+                    const last = routes[path]?.lastUsedTime;
+                    const { schema, resolvers } = await generateSchemaAndResolvers(path, headers);
 
-                if (schema !== routes[path]?.schemaHash) {
-                    const server = await createApolloServer(path, schema, resolvers);
-                    await createOrReplaceApolloServer(server, path);
-                    routes[path].lastUsedTime = last;
-                    console.log('REFRESHED apollo server for', path);
+                    if (schema !== routes[path]?.schemaHash) {
+                        const server = await createApolloServer(path, schema, resolvers);
+                        await createOrReplaceApolloServer(server, path);
+                        routes[path].lastUsedTime = last;
+                        console.log('REFRESHED apollo server for', path);
+                    }
+                } catch (e) {
+                    console.log(e);
                 }
         
                 setTimeout(() => probe(), PROBE_DELAY_MS);
@@ -109,7 +113,7 @@ async function generateSchemaAndResolvers(path, headers) {
         schema: await schemaGenerator.generateSchema(structure),
         resolvers: await resolverGenerator.generateResolvers(structure)
     }
-}
+}                
 
 async function registerApolloServer(server, path) {
     await server.start();

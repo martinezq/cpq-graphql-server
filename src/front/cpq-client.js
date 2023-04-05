@@ -8,8 +8,10 @@ const R = require('ramda');
 const MAX_AGE = 5 * 1000;
 const THRESHOLD = 5 * 1000;
 
+const API_VERSION = 'v2.1';
+
 const axios = Axios.create({
-    timeout: 10000
+    timeout: 180000
 });
 
 // const cache = new Cache({ maxAge: MAX_AGE, max: 100 });
@@ -24,7 +26,7 @@ const axios = Axios.create({
 
 async function describe(context) {
     const { baseurl, headers } = context;
-    const url = `${baseurl}/api/describe`;
+    const url = `${baseurl}/api-${API_VERSION}/describe`;
 
     console.log('GET', url);
 
@@ -37,7 +39,7 @@ async function describe(context) {
 
 async function headers(context, type, args) {
     const { baseurl, headers } = context;
-    const url = `${baseurl}/api-v2/${type}/headers`;
+    const url = `${baseurl}/api-${API_VERSION}/${type}/headers`;
 
     const where = R.toPairs(args.criteria).map(p => `${p[0]}=${p[1]?._id || p[1]}`);
 
@@ -61,7 +63,7 @@ async function headers(context, type, args) {
 
 async function list(context, type, args) {
     const { baseurl, headers } = context;
-    const url = `${baseurl}/api-v2/${type}/list`;
+    const url = `${baseurl}/api-${API_VERSION}/${type}/list`;
 
     const where = R.toPairs(args.criteria).map(p => `${p[0]}=${p[1]._id || p[1]}`);
 
@@ -85,7 +87,7 @@ async function list(context, type, args) {
 async function get(context, type, args) {
     const { baseurl, headers } = context;
     const id = args._id;
-    const url = `${baseurl}/api-v2/${type}/${id}`;
+    const url = `${baseurl}/api-${API_VERSION}/${type}/${id}`;
 
     console.log('GET', url, args);
 
@@ -107,7 +109,7 @@ async function get(context, type, args) {
 async function copy(context, type, args) {
     const { baseurl, headers } = context;
     const id = args._id;
-    const url = `${baseurl}/api-v2/${type}/${id}/copy`;
+    const url = `${baseurl}/api-${API_VERSION}/${type}/${id}/copy`;
 
     console.log('POST', url, args);
 
@@ -125,7 +127,7 @@ async function copy(context, type, args) {
 async function add(context, type, args) {
     const { baseurl, headers } = context;
     const id = args._id;
-    const url = `${baseurl}/api-v2/${type}`;
+    const url = `${baseurl}/api-${API_VERSION}/${type}`;
 
     console.log('POST', url, args);
 
@@ -187,7 +189,7 @@ async function add(context, type, args) {
 async function update(context, type, args) {
     const { baseurl, headers } = context;
     const id = args._id;
-    const url = `${baseurl}/api-v2/${type}/${id}`;
+    const url = `${baseurl}/api-${API_VERSION}/${type}/${id}`;
 
     console.log('PUT', url, args);
 
@@ -250,7 +252,7 @@ async function update(context, type, args) {
 async function del(context, type, args) {
     const { baseurl, headers } = context;
     const id = args._id;
-    const url = `${baseurl}/api-v2/${type}/${id}`;
+    const url = `${baseurl}/api-${API_VERSION}/${type}/${id}`;
 
     console.log('DELETE', url, args);
 
@@ -269,7 +271,7 @@ async function transition(context, type, args) {
     const { baseurl, headers } = context;
     const id = args._id;
     const transitionId = args.transitionId;
-    const url = `${baseurl}/api-v2/${type}/${id}/transition/${transitionId}`;
+    const url = `${baseurl}/api-${API_VERSION}/${type}/${id}/transition/${transitionId}`;
 
     console.log('POST', url, args);
 
@@ -287,7 +289,25 @@ async function transition(context, type, args) {
 async function recalculatePricing(context, type, args) {
     const { baseurl, headers } = context;
     const id = args._id;
-    const url = `${baseurl}/api-v2/solution/${id}/recalculate-pricing`;
+    const url = `${baseurl}/api-${API_VERSION}/solution/${id}/recalculate-pricing`;
+
+    console.log('POST', url, args);
+
+    const options = { 
+        headers: { Authorization: headers.authorization }
+    };
+
+    const resp = await handleErrors(
+        () => axios.post(url, null, options)
+    );
+
+    return resp;
+}
+
+async function configureSolutionProducts(context, type, args) {
+    const { baseurl, headers } = context;
+    const id = args._id;
+    const url = `${baseurl}/api-${API_VERSION}/solution/${id}/configure`;
 
     console.log('POST', url, args);
 
@@ -304,10 +324,13 @@ async function recalculatePricing(context, type, args) {
 
 async function handleErrors(func, body, retries) {
     retries = retries !== undefined ? retries : 1;
+    const delay = 1000;
     const promise = func();
 
     return promise.catch(e => {
         let error = { message: e.message }
+
+        console.log('ERROR', e);
 
         if (e.response) {
             const r = e.response;
@@ -316,8 +339,8 @@ async function handleErrors(func, body, retries) {
             switch(status) {
                 case 502:
                     if (retries > 0) {
-                        console.log('Retrying last command');
-                        return wait(1000).then(() => handleErrors(func, body, retries - 1));
+                        console.log('...Retrying last command');
+                        return wait(delay).then(() => handleErrors(func, body, retries - 1));
                     } else {
                         return Promise.reject(new ApolloError(r.data, status)); 
                     }
@@ -393,5 +416,6 @@ module.exports = {
     update,
     del,
     transition,
-    recalculatePricing
+    recalculatePricing,
+    configureSolutionProducts
 };

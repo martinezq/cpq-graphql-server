@@ -34,7 +34,8 @@ async function generateResolvers(structure) {
         Mutation[r.gqlUpdateManyMutationName] = async (parent, args, context, info) => updateManyResources(context, args, r)
         Mutation[r.gqlDeleteManyMutationName] = async (parent, args, context, info) => deleteManyResources(context, args, r)
         Mutation[r.gqlTransitionManyMutationName] = async (parent, args, context, info) => transitionManyResources(context, args, r)
-        Mutation['recalculatePricing'] = async (parent, args, context, info) => recalculatePricing(context, args, r)
+        Mutation['recalculatePricing'] = async (parent, args, context, info) => recalculatePricing(context, args, r),
+        Mutation['configureSolutionProducts'] = async (parent, args, context, info) => configureSolutionProducts(context, args, r)
     });
 
     resolvers = {
@@ -70,6 +71,14 @@ async function generateResolvers(structure) {
 }
 
 async function listResources(context, args, structure, onlyHeaders = false) {
+    if (args.params?.offset !== undefined && args.params?.page !== undefined) {
+        throw 'Query params: offset and page cannot be used together';
+    }
+
+    if (args.params?.limit > 1000 && args.params?.page === undefined) {
+        throw 'Query params: if limit > 1000, use page param, not offset';
+    }
+    
     // console.log(JSON.stringify(context));
     const page = args.params?.page || 1000;
     
@@ -80,7 +89,7 @@ async function listResources(context, args, structure, onlyHeaders = false) {
 
     const listRecursiveAndParse = async (offset = 0, limit = args.params?.limit || 10) => {
 
-        const resp = await listOrHeaders({ ...args2, params: { limit: limit > page ? page : limit, offset }});
+        const resp = await listOrHeaders({ ...args2, params: { ...args2.params, limit: limit > page ? page : limit, offset }});
         const parsed = await parseResponse(resp, structure);
 
         if (parsed.length === page) {
@@ -91,7 +100,14 @@ async function listResources(context, args, structure, onlyHeaders = false) {
         return parsed;
     }
 
-    const parsed = await listRecursiveAndParse();
+    let parsed = [];
+
+    if (args.params?.limit > 1000) {
+        parsed = await listRecursiveAndParse();
+    } else {
+        const resp = await listOrHeaders({ ...args2 });
+        parsed = await parseResponse(resp, structure);
+    }
     
     return args.filter ? filterResources(parsed, args.filter) : parsed;
 }
@@ -129,6 +145,12 @@ async function addResource(context, args, structure) {
 
     const resp = await cpq.add(context, structure.apiType, args2);
     const _id = extractLatestIdFromLocationHeader(resp.headers);
+
+    // todo: based on requested attributes!
+    return {
+        _id: _id.split('-')[0]
+    };
+
     return getResource(context, { _id }, structure);
 }
 
@@ -200,78 +222,134 @@ async function transitionResource(context, args, structure) {
     };
 }
 
-async function updateManyResources(context, args, structure) {
-    const list = await listResources(context, { ...args, params: { limit: 1000 }}, structure);
+async function executeMassOperation(args, list, func) {
+    const ignoreErrors = args.opts?.ignoreErrors || false;
+    const parallel = args.opts?.parallel || 1;
 
-    const args2 = await resolveLookups(context, args, structure);
-
-    let count = 0;
-
-    // One at a time
-    await list.reduce((p, c) => p.then(async () => {
-        const args3 = { ...args2, _id: c._latestVersion };
-        const resp = await cpq.update(context, structure.apiType, args3);
-        count++;
-        return resp;
-    }), Promise.resolve());
-
-    return count;
-}
-
-async function deleteManyResources(context, args, structure) {
-    const list = await listResources(context, { ...args, params: { limit: 1000 }}, structure, true);
-
-    let count = 0;
-
-    // One at a time
-    await list.reduce((p, c) => p.then(async () => {
-        const args2 = { _id: c._latestVersion, attributes: args.attributes };
-        const resp = await cpq.del(context, structure.apiType, args2);
-        count++;
-        return resp;
-    }), Promise.resolve());
-
-    return count;
-}
-
-async function transitionManyResources(context, args, structure) {
-    const list = await listResources(context, { ...args.selector, params: { limit: 1000 }}, structure);
-
-    let totalCount = 0;
-    let successCount = 0;
     let errors = [];
+    let count = 0;
 
-    // One at a time
-    await list.reduce((p, c) => p.then(async () => {
-        const args2 = { _id: c._id, ...args};
-        const resp = await transitionResource(context, args2, structure)
-            .then(r => {
-                totalCount += r.totalCount;
-                successCount += r.successCount;
-                r.errors.forEach(e => errors.push(e));
-            })
-            .catch(e => {
-                if (args.opts?.ignoreErrors) {
-                    errors.push(e);
-                    return Promise.resolve();
+    const buckets = R.splitEvery(parallel, list);
+
+    await buckets.reduce((p, bucket) => p.then(() => {
+        return Promise.all(bucket.map(async c => {
+            try {
+                await func(c);
+                count++;
+            } catch (e) {
+                if (ignoreErrors) {
+                    errors.push(e.toString());
                 } else {
-                    return Promise.reject(e);
+                    throw e;
                 }
-            });
-
-        return resp;
+            }            
+        })); 
     }), Promise.resolve());
 
     return {
-        totalCount,
-        successCount,
-        errorCount: totalCount - successCount,
+        totalCount: list.length,
+        successCount: count,
+        errorCount: errors.length,
         errors
     };
 }
 
+async function updateManyResources(context, args, structure) {
+    const list = await listResources(context, { ...args, params: { ...(args.params), limit: 1000000, page: 1000 }}, structure, true);
+    const args2 = await resolveLookups(context, args, structure);
+
+    return await executeMassOperation(args, list, async (current) => {
+        const localArgs = { ...args2, _id: current._latestVersion };
+        return await cpq.update(context, structure.apiType, localArgs);
+    });
+}
+
+async function deleteManyResources(context, args, structure) {
+    const list = await listResources(context, { ...args, params: { limit: 1000000, page: 1000 }}, structure, true);
+
+    return await executeMassOperation(args, list, async (current) => {
+        const localArgs = { _id: c._latestVersion, attributes: args.attributes };
+        return await cpq.del(context, structure.apiType, localArgs);
+    });
+
+    // const ignoreErrors = args.opts?.ignoreErrors || false;
+
+    // let deletedCount = 0;
+
+    // let errors = [];
+
+    // // One at a time
+    // await list.reduce((p, c) => p.then(async () => {
+    //     const args2 = { _id: c._latestVersion, attributes: args.attributes };
+    //     try {
+    //         const resp = await cpq.del(context, structure.apiType, args2);
+    //         deletedCount++;
+    //         return resp;
+    //     } catch (e) {
+    //         if (ignoreErrors) {
+    //             errors.push(e.toString());
+    //         } else {
+    //             throw e;
+    //         }
+    //     }
+    // }), Promise.resolve());
+
+    // return {
+    //     totalCount: list.length,
+    //     successCount: deletedCount,
+    //     errorCount: errors.length,
+    //     errors
+    // };
+}
+
+async function transitionManyResources(context, args, structure) {
+    const list = await listResources(context, { ...args.selector, params: { limit: 1000 }}, structure, true);
+
+    return await executeMassOperation(args, list, async (c) => {
+        const args2 = { _id: c._id, ...args};
+        return await transitionResource(context, args2, structure);
+    });
+
+    // let totalCount = 0;
+    // let successCount = 0;
+    // let errors = [];
+
+    // // One at a time
+    // await list.reduce((p, c) => p.then(async () => {
+    //     const args2 = { _id: c._id, ...args};
+    //     const resp = await transitionResource(context, args2, structure)
+    //         .then(r => {
+    //             totalCount += r.totalCount;
+    //             successCount += r.successCount;
+    //             r.errors.forEach(e => errors.push(e));
+    //         })
+    //         .catch(e => {
+    //             if (args.opts?.ignoreErrors) {
+    //                 errors.push(e);
+    //                 return Promise.resolve();
+    //             } else {
+    //                 return Promise.reject(e);
+    //             }
+    //         });
+
+    //     return resp;
+    // }), Promise.resolve());
+
+    // return {
+    //     totalCount,
+    //     successCount,
+    //     errorCount: totalCount - successCount,
+    //     errors
+    // };
+}
+
 async function recalculatePricing(context, args, structure) {
     await cpq.recalculatePricing(context, 'solution', args);
+    return true;
+}
+
+async function configureSolutionProducts(context, args, structure) {
+    await cpq.configureSolutionProducts(context, 'solution', args);
     return true;
 }
 
@@ -353,7 +431,7 @@ function parseElement(e, structure) {
                     result[gqlAttribute.gqlName] = JSON.stringify(a);
                 }
             } else if (gqlAttribute?.type === 'Boolean') {
-                result[gqlAttribute.gqlName] = Boolean(a.value);
+                result[gqlAttribute.gqlName] = a.value === 'true';
             } else {
                 result[gqlAttribute.gqlName] = a.value;
             }

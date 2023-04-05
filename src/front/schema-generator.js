@@ -26,10 +26,19 @@ async function generateSchema(structure) {
 
             input ${r.gqlListQueryName}QueryParams {
                 limit: Int
+                offset: Int
                 page: Int
                 sort: ${r.gqlListQueryName}QuerySortBy
                 order: Order
+                from: String
+                to: String
             }
+
+            input MassMutationQueryParams {
+                from: String
+                to: String
+            }
+
 
             input ${r.gqlListQueryName}QueryCriteria {
                 ${searchableAttributesPlain.length > 0 ? searchableAttributesPlain.join('\n') : '_no_searchable_attributes: Int'}
@@ -101,16 +110,17 @@ async function generateSchema(structure) {
         ${r.gqlTransitionMutationName}(_id: ID!, transition: ${r.gqlName}TransitionArgument!, opts: MassOperationOptions): MassOperationStatus
 
         """Update many ${r.gqlNamePlural} (up to 1000 at once) \n\n
+            *params*: server side params \n
             *criteria*: server side filtering, works only for indexed attributes \n
             *filter*: implemented in middleware, slower but works for all attributes  \n
         """
-        ${r.gqlUpdateManyMutationName}(criteria: ${r.gqlListQueryName}QueryCriteria!, filter: ${r.gqlListQueryName}FilterCriteria, attributes: ${r.name}Attributes!): Int
+        ${r.gqlUpdateManyMutationName}(params: MassMutationQueryParams, criteria: ${r.gqlListQueryName}QueryCriteria!, filter: ${r.gqlListQueryName}FilterCriteria, opts: MassOperationOptions, attributes: ${r.name}Attributes!): MassOperationStatus
 
         """Delete many ${r.gqlNamePlural} (up to 1000 at once) \n\n
             *criteria*: server side filtering, works only for indexed attributes \n
             *filter*: implemented in middleware, slower but works for all attributes  \n
         """
-        ${r.gqlDeleteManyMutationName}(criteria: ${r.gqlListQueryName}QueryCriteria!, filter: ${r.gqlListQueryName}FilterCriteria): Int
+        ${r.gqlDeleteManyMutationName}(criteria: ${r.gqlListQueryName}QueryCriteria!, filter: ${r.gqlListQueryName}FilterCriteria, opts: MassOperationOptions): MassOperationStatus
 
         """Transition many ${r.gqlNamePlural} (up to 1000 at once) \n\n
         *criteria*: server side filtering, works only for indexed attributes \n
@@ -169,7 +179,8 @@ async function generateSchema(structure) {
         }
 
         input MassOperationOptions {
-            ignoreErrors: Boolean
+            ignoreErrors: Boolean,
+            parallel: Int
         }
 
         type Query {
@@ -181,6 +192,7 @@ async function generateSchema(structure) {
         type Mutation {
             ${mutations.join('\n')}
             recalculatePricing(_id: ID!): Boolean
+            configureSolutionProducts(_id: ID!): Boolean
         }
 
         type MassOperationStatus {
