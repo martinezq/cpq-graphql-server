@@ -69,7 +69,12 @@ function parseDescribeResponse(resp) {
 }
 
 function toGraphQLName(attribute) {
-    return attribute.name.replace(/-/, '');
+    let prefix = '';
+    
+    if (attribute.name.match(/^[0-9].*/)) {
+        prefix = '_DIGIT_';    
+    }
+    return prefix + attribute.name.replace(/-/, '');
 }
 
 function toPlural(val) {
