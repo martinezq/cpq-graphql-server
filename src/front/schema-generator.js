@@ -45,6 +45,7 @@ async function generateSchema(structure) {
             }
 
             input ${r.gqlListQueryName}FilterCriteria {
+                _organization: String
                 ${attributesPlain.join('\n')}
             }
 
@@ -87,7 +88,7 @@ async function generateSchema(structure) {
 
     const queries = structure.map(r => `
         "Get list of ${r.gqlNamePlural}"
-        ${r.gqlListQueryName}(criteria: ${r.gqlListQueryName}QueryCriteria, params: ${r.gqlListQueryName}QueryParams): [${r.gqlName}]
+        ${r.gqlListQueryName}(criteria: ${r.gqlListQueryName}QueryCriteria, filter: ${r.gqlListQueryName}FilterCriteria, params: ${r.gqlListQueryName}QueryParams): [${r.gqlName}]
 
         "Get ${r.gqlName} by id"
         ${r.gqlGetQueryName}(_id: ID!): ${r.gqlName}

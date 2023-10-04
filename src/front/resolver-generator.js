@@ -255,7 +255,7 @@ async function executeMassOperation(args, list, func) {
 }
 
 async function updateManyResources(context, args, structure) {
-    const list = await listResources(context, { ...args, params: { ...(args.params), limit: 1000000, page: 1000 }}, structure, true);
+    const list = await listResources(context, { ...args, params: { ...(args.params), limit: 1000000, page: 1000 }}, structure, !Boolean(args.filter));
     const args2 = await resolveLookups(context, args, structure);
 
     return await executeMassOperation(args, list, async (current) => {
@@ -265,7 +265,7 @@ async function updateManyResources(context, args, structure) {
 }
 
 async function deleteManyResources(context, args, structure) {
-    const list = await listResources(context, { ...args, params: { limit: 1000000, page: 1000 }}, structure, true);
+    const list = await listResources(context, { ...args, params: { limit: 1000000, page: 1000 }}, structure, !Boolean(args.filter));
 
     return await executeMassOperation(args, list, async (current) => {
         const localArgs = { _id: c._latestVersion, attributes: args.attributes };
