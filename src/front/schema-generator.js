@@ -46,6 +46,8 @@ async function generateSchema(structure) {
 
             input ${r.gqlListQueryName}FilterCriteria {
                 _organization: String
+                _state: String
+                _text: String
                 ${attributesPlain.join('\n')}
             }
 
@@ -82,6 +84,7 @@ async function generateSchema(structure) {
                 _organization: String
                 _stateId: Int
                 ${attributes.join('\n')}
+                ${r.name === 'ConfiguredProduct' ? 'bomStructure: BomStructure' : ''}
             }
         `;
     });
@@ -219,6 +222,20 @@ async function generateSchema(structure) {
             scope: CacheControlScope
             inheritMaxAge: Boolean
           ) on FIELD_DEFINITION | OBJECT | INTERFACE | UNION
+
+        type BomStructure {
+            items: [BomItem]
+        }
+
+        type BomItem {
+            attributes: [BomAttribute]
+            items: [BomItem]
+        }
+
+        type BomAttribute {
+            name: String
+            value: String
+        }
     `;
 
     // console.log(schema);

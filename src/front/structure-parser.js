@@ -28,7 +28,7 @@ function parseDescribeResponse(resp) {
             gqlDeleteManyMutationName: 'deleteMany' + toPlural(r.name),
             gqlTransitionManyMutationName: 'transitionMany' + toPlural(r.name),
             apiType: r.name.toLowerCase(),
-            attributes: r.attributes.attribute.map(a => {
+            attributes: R.flatten([r.attributes.attribute]).map(a => {
                 return {
                     name: a.name,
                     referencedType: a.referencedType,
