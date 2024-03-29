@@ -1,0 +1,2 @@
+schema: "out/schema.gql"
+documents: /**/*.{gql,graphql,js,ts,jsx,tsx}"

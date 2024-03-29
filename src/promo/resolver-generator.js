@@ -39,8 +39,7 @@ async function generateResolvers(structure) {
     });
 
     resolvers = {
-        Query, Mutation, 
-        Long: public.resolvers.LongScalar
+        Query, Mutation
     }
 
     structure.forEach(r => {
@@ -115,23 +114,15 @@ async function listResources(context, args, structure, onlyHeaders = false) {
 
 async function filterResources(parsed, filter) {
     const rules = R.mapObjIndexed((v, k) => {
-        if (k === '_text') return x => true;
-
         if (v === null) return x => x === undefined;
         return R.equals(v);
-
     }, filter)
     
     const pred = R.where(rules);
 
     const result = parsed.filter(pred);
-        
-    if (filter._text) {
-        const result2 = result.filter(x => JSON.stringify(x).indexOf(filter._text) > -1);
-        return result2;
-    } else {
-        return result;
-    }
+
+    return result;
 }
 
 async function getResource(context, args, structure) {
@@ -264,7 +255,7 @@ async function executeMassOperation(args, list, func) {
 }
 
 async function updateManyResources(context, args, structure) {
-    const list = await listResources(context, { ...args, params: { ...(args.params), limit: 1000000, page: 1000 }}, structure, !Boolean(args.filter));
+    const list = await listResources(context, { ...args, params: { ...(args.params), limit: 1000000, page: 1000 }}, structure, true);
     const args2 = await resolveLookups(context, args, structure);
 
     return await executeMassOperation(args, list, async (current) => {
@@ -274,10 +265,10 @@ async function updateManyResources(context, args, structure) {
 }
 
 async function deleteManyResources(context, args, structure) {
-    const list = await listResources(context, { ...args, params: { limit: 1000000, page: 1000 }}, structure, !Boolean(args.filter));
+    const list = await listResources(context, { ...args, params: { limit: 1000000, page: 1000 }}, structure, true);
 
     return await executeMassOperation(args, list, async (current) => {
-        const localArgs = { _id: current._latestVersion, attributes: args.attributes };
+        const localArgs = { _id: c._latestVersion, attributes: args.attributes };
         return await cpq.del(context, structure.apiType, localArgs);
     });
 
@@ -436,9 +427,6 @@ function parseElement(e, structure) {
             } else if (gqlAttribute?.type === 'XML') {
                 if (gqlAttribute?.name === 'profiles') {
                     result[gqlAttribute.gqlName] = [a.profiles.organization].flat().map(o => ({ organization: { name: o.name, role: [o.role].flat() } }));
-                } else if (gqlAttribute?.name === 'bom') {
-                    result[gqlAttribute.gqlName] = JSON.stringify(a);
-                    result['bomStructure'] = parseBomStructure(a);
                 } else {
                     result[gqlAttribute.gqlName] = JSON.stringify(a);
                 }
@@ -451,31 +439,6 @@ function parseElement(e, structure) {
     }
 
     return result;
-}
-
-function parseBomStructure(bom) {
-
-    function parseItem(item) {
-        const keys = R.keys(item)
-        const attributeKeys = keys.filter(k => k !== 'items');
-        
-        let result = { attributes: []};
-
-        attributeKeys.forEach(a => {
-            result.attributes.push({
-                name: a,
-                value: item[a]
-            });
-        });
-
-        if (keys.indexOf('items') > -1) {
-            result.items = R.flatten([item.items.item]).map(parseItem);
-        }
-
-        return result;
-    }
-
-    return { items: R.flatten([bom.items.item]).map(parseItem)};
 }
 
 module.exports = {

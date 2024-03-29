@@ -1,4 +1,6 @@
 
+const { GraphQLScalarType } = require('graphql');
+
 const schema = `
     input Credentials {
         user: String!
@@ -17,13 +19,30 @@ const schema = `
         "Generate authorization header from username and password"
         authorizationHeader(credentials: Credentials!): AuthHeader!
     }
+
+    scalar Long
 `;
+
+const LongScalar = new GraphQLScalarType({
+    name: 'Long',
+    description: 'Long integer',
+    serialize(value) {
+      return Number(value);
+    },
+    parseValue(value) {
+      return value;
+    },
+    parseLiteral(value) {
+        return value
+    },
+  });
 
 const resolvers = {
     Query: {
         status: () => routes[path].state,
         authorizationHeader: (_, args) => generateAuthHeader(args)
-    }
+    },
+    LongScalar
 };
 
 function generateAuthHeader(args) {

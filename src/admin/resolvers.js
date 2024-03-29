@@ -18,6 +18,11 @@ const resolvers = {
 
 async function listTickets(parent, args, context) {
     const resp = await cpq.listTickets(context);
+
+    if (resp.headers['content-type'] !== 'text/xml; charset=utf-8') {
+        throw "Expected XML response, got something else - check Authorization header!";
+    }
+
     const jsonData = JSON.parse(parser.toJson(resp.data));
 
     const list = [jsonData.tickets.ticket].flat();

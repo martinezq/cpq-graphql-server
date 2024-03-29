@@ -15,7 +15,9 @@ const axios = Axios.create({
 });
 
 async function listTickets({ baseurl, headers }) {
-    const url = `${baseurl}/api/ticket/list`;
+    const adminBaseUrl = baseurl.split('/ticket/')[0];
+
+    const url = `${adminBaseUrl}/api/ticket/list`;
     console.log('GET', url);
 
     return handleErrors(

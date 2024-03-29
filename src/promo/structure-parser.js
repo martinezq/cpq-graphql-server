@@ -28,7 +28,7 @@ function parseDescribeResponse(resp) {
             gqlDeleteManyMutationName: 'deleteMany' + toPlural(r.name),
             gqlTransitionManyMutationName: 'transitionMany' + toPlural(r.name),
             apiType: r.name.toLowerCase(),
-            attributes: R.flatten([r.attributes.attribute]).map(a => {
+            attributes: r.attributes.attribute.map(a => {
                 return {
                     name: a.name,
                     referencedType: a.referencedType,
@@ -69,12 +69,7 @@ function parseDescribeResponse(resp) {
 }
 
 function toGraphQLName(attribute) {
-    let prefix = '';
-    
-    if (attribute.name.match(/^[0-9].*/)) {
-        prefix = '_DIGIT_';    
-    }
-    return prefix + attribute.name.replace(/-/, '');
+    return attribute.name.replace(/-/, '');
 }
 
 function toPlural(val) {
@@ -95,7 +90,7 @@ function toGraphQLType(attribute) {
         case 'Boolean':
             return 'Boolean';
         case 'Integer':
-            return 'Long';
+            return 'Int';
         case 'XML':
             if (attribute.name === 'profiles') return '[UserProfile]'
             return 'String';
