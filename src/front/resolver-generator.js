@@ -91,7 +91,7 @@ async function listResources(context, args, structure, onlyHeaders = false) {
     const listRecursiveAndParse = async (offset = 0, limit = args.params?.limit || 10) => {
 
         const resp = await listOrHeaders({ ...args2, params: { ...args2.params, limit: limit > page ? page : limit, offset }});
-        const parsed = await parseResponse(resp, structure);
+        const parsed = await parseResponse(resp, args2, structure);
 
         if (parsed.length === page) {
             const rest = await listRecursiveAndParse(offset + page, limit - parsed.length);
@@ -107,7 +107,7 @@ async function listResources(context, args, structure, onlyHeaders = false) {
         parsed = await listRecursiveAndParse();
     } else {
         const resp = await listOrHeaders({ ...args2 });
-        parsed = await parseResponse(resp, structure);
+        parsed = await parseResponse(resp, args2, structure);
     }
     
     return args.filter ? filterResources(parsed, args.filter) : parsed;
@@ -138,7 +138,7 @@ async function getResource(context, args, structure) {
     // console.log(JSON.stringify(args));
     const resp = await cpq.get(context, structure.apiType, args);
 
-    const result = await parseResponse(resp, structure);
+    const result = await parseResponse(resp, args, structure);
 
     return R.head(result);
 }
@@ -390,7 +390,7 @@ function extractLatestIdFromLocationHeader(headers) {
     }
 }
 
-async function parseResponse(resp, structure) {
+async function parseResponse(resp, args, structure) {
     const { data } = resp;
     const jsonData = JSON.parse(parser.toJson(data));
     
@@ -401,10 +401,10 @@ async function parseResponse(resp, structure) {
     
     const list = [].concat(resources).concat(headers).filter(R.identity);
 
-    return Promise.resolve(list.map(e => parseElement(e, structure)));
+    return Promise.resolve(list.map(e => parseElement(e, args, structure)));
 }
 
-function parseElement(e, structure) {
+function parseElement(e, args, structure) {
     if (!e) return undefined;
 
     let result = {
@@ -449,6 +449,8 @@ function parseElement(e, structure) {
             }
         });
     }
+
+    result._expressionResult = args.expression;
 
     return result;
 }

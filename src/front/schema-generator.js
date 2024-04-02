@@ -85,13 +85,14 @@ async function generateSchema(structure) {
                 _stateId: Int
                 ${attributes.join('\n')}
                 ${r.name === 'ConfiguredProduct' ? 'bomStructure: BomStructure' : ''}
+                _expressionResult: String
             }
         `;
     });
 
     const queries = structure.map(r => `
         "Get list of ${r.gqlNamePlural}"
-        ${r.gqlListQueryName}(criteria: ${r.gqlListQueryName}QueryCriteria, filter: ${r.gqlListQueryName}FilterCriteria, params: ${r.gqlListQueryName}QueryParams): [${r.gqlName}]
+        ${r.gqlListQueryName}(criteria: ${r.gqlListQueryName}QueryCriteria, filter: ${r.gqlListQueryName}FilterCriteria, params: ${r.gqlListQueryName}QueryParams, expression: String): [${r.gqlName}]
 
         "Get ${r.gqlName} by id"
         ${r.gqlGetQueryName}(_id: ID!): ${r.gqlName}

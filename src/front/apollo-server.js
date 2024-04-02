@@ -7,6 +7,7 @@ const structureParser = require('./structure-parser');
 const schemaGenerator = require('./schema-generator');
 const resolverGenerator = require('./resolver-generator');
 const public = require('../common/public-schema');
+const { processExpressions } = require('./expression-processor');
 
 // ----------------------------------------------------------------------------
 
@@ -150,6 +151,12 @@ async function createInitialApolloServer(path) {
 async function createApolloServer(path, typeDefs, resolvers) {
     const cache = responseCachePlugin();
 
+    const expressions = {
+        async willSendResponse(response) {
+            console.log('willSendResponse!', response);
+        },
+    };
+
     const server = new ApolloServer({
         typeDefs,
         resolvers,
@@ -161,11 +168,15 @@ async function createApolloServer(path, typeDefs, resolvers) {
                 }
             });
         },
+        formatResponse: (res, opts) => {
+            // console.log('format', res);
+            return processExpressions(res);
+        },
         formatError: (err) => {
             console.log(err);
             return err;
         },
-        plugins: [cache],
+        plugins: [cache, expressions],
     });
 
     return Promise.resolve(server);
