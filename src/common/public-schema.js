@@ -1,5 +1,5 @@
 
-const { GraphQLScalarType } = require('graphql');
+const { GraphQLScalarType, Kind } = require('graphql');
 
 const schema = `
     input Credentials {
