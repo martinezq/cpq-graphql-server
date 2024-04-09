@@ -113,7 +113,7 @@ function toGraphQLTypeInput(attribute) {
         case 'Boolean':
             return 'Boolean';
         case 'Integer':
-            return 'Int';
+            return 'Long';
         case 'XML':
             if (attribute.name === 'profiles') return '[UserProfileInput]'
             if (attribute.name === 'bom') return 'BOMInput'
