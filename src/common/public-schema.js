@@ -32,7 +32,7 @@ const LongScalar = new GraphQLScalarType({
     parseValue(value) {
       return value;
     },
-    parseLiteral(value) {
+    parseLiteral(ast) {
         if (ast.kind === Kind.INT) {
             return Number(ast.value, 10);
         }
