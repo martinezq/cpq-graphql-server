@@ -1,4 +1,5 @@
-const { ApolloError, AuthenticationError } = require('@apollo/server');
+const { ApolloError } = require('@apollo/server');
+const { GraphQLError } = require('graphql');
 
 const Axios = require('axios');
 // const { throttleAdapterEnhancer, cacheAdapterEnhancer, Cache } = require('axios-extensions');
@@ -345,7 +346,11 @@ async function handleErrors(func, body, retries) {
                         return Promise.reject(new ApolloError(r.data, status)); 
                     }
                 case 403:
-                    return Promise.reject(new AuthenticationError('Authentication error, check "Authorization" header and CPQ permissions!'));
+                    return Promise.reject(new GraphQLError(`Authentication error, check "Authorization" header and CPQ permissions!`, {
+                        extensions: {
+                          code: 'FORBIDDEN',
+                        }
+                    }))
             };
 
             console.log('REQUEST DATA', body);

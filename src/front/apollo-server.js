@@ -129,7 +129,12 @@ async function registerApolloServer(server, path) {
         cors(),
         express.json(),
         expressMiddleware(server, {
-            context: async ({ req }) => ({ token: req.headers.token }),
+            context: async ({ req }) => ({
+                baseurl: `https:/${path}`,
+                headers: {
+                    authorization: req.headers.authorization
+                }
+            }),
         })
     );
 
@@ -172,14 +177,6 @@ async function createApolloServer(path, typeDefs, resolvers) {
     const server = new ApolloServer({
         typeDefs,
         resolvers,
-        context: async ({ req }) => {
-            return Promise.resolve({
-                baseurl: `https:/${path}`,
-                headers: {
-                    authorization: req.headers.authorization
-                }
-            });
-        },
         formatResponse: (res, opts) => {
             // console.log('format', res);
             return processExpressions(res);
