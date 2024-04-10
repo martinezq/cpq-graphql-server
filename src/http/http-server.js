@@ -18,11 +18,11 @@ async function startHttpServer(port) {
 
         const frontRouter = express.Router();
         const adminRouter = express.Router();
-        // const promoRouter = express.Router();
+        const promoRouter = express.Router();
 
         frontRouter.use(async (req, res, next) => frontServer.handlePath(req, res, next, app));
         adminRouter.use(async (req, res, next) => adminServer.handlePath(req, res, next, app));
-        // promoRouter.use(async (req, res, next) => promoServer.handlePath(req, res, next, app));
+        promoRouter.use(async (req, res, next) => promoServer.handlePath(req, res, next, app));
         
         app.use(express.static('public'))
 
@@ -44,7 +44,7 @@ async function startHttpServer(port) {
 
         app.use('/front', frontRouter);
         app.use('/admin', adminRouter);
-        // app.use('/promo', promoRouter);
+        app.use('/promo', promoRouter);
 
         console.log(`🚀 Server ready at http://${host}:${port}`);
     });

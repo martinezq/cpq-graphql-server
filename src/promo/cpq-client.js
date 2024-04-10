@@ -1,30 +1,15 @@
 const Axios = require('axios');
-// const { throttleAdapterEnhancer, cacheAdapterEnhancer, Cache } = require('axios-extensions');
-const qs = require('qs');
 const R = require('ramda');
 
-const MAX_AGE = 5 * 1000;
-const THRESHOLD = 5 * 1000;
-
-const API_VERSION = 'v2.1';
+const ENDPOINT = 'api/product-modeling/v2';
 
 const axios = Axios.create({
     timeout: 180000
 });
 
-// const cache = new Cache({ maxAge: MAX_AGE, max: 100 });
-
-// const axios = Axios.create({
-//     headers: { 'Cache-Control': 'no-cache' },
-//     adapter: throttleAdapterEnhancer(
-//         cacheAdapterEnhancer(Axios.defaults.adapter, { defaultCache: cache, enabledByDefault: true }), 
-//         { threshold: THRESHOLD }
-//     )
-// });
-
 async function listAssemblies(context) {
-    const { baseurl, headers } = context;
-    const url = `${baseurl}/api-${API_VERSION}/describe`;
+    const { baseurl, ticket, headers } = context;
+    const url = `${baseurl}/${ENDPOINT}/${ticket}/assembly/list`;
 
     console.log('GET', url);
 
@@ -32,7 +17,7 @@ async function listAssemblies(context) {
         () => axios.get(url, { headers: { Authorization: headers?.authorization } })
     );
 
-    return resp;
+    return resp.data;
 }
 
 async function handleErrors(func, body, retries) {
