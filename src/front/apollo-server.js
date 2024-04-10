@@ -1,6 +1,9 @@
 const express = require('express');
-const { ApolloServer } = require('apollo-server-express');
-const responseCachePlugin = require('apollo-server-plugin-response-cache').default;
+const { ApolloServer } = require('@apollo/server');
+const responseCachePlugin = require('@apollo/server-plugin-response-cache').default;
+const { expressMiddleware } = require('@apollo/server/express4');
+
+const cors = require('cors');
 
 const cpq = require('./cpq-client');
 const structureParser = require('./structure-parser');
@@ -121,7 +124,16 @@ async function registerApolloServer(server, path) {
     
     const router = express.Router();
 
-    await server.applyMiddleware({ app: router, path });
+    router.use(
+        path,
+        cors(),
+        express.json(),
+        expressMiddleware(server, {
+            context: async ({ req }) => ({ token: req.headers.token }),
+        })
+    );
+
+    // await server.applyMiddleware({ app: router, path });
     routes[path] = { router, server, state: 'waiting for auth' };
 
     return server;

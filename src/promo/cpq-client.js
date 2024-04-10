@@ -1,7 +1,5 @@
-const { ApolloError, AuthenticationError } = require('apollo-server');
-
 const Axios = require('axios');
-const { throttleAdapterEnhancer, cacheAdapterEnhancer, Cache } = require('axios-extensions');
+// const { throttleAdapterEnhancer, cacheAdapterEnhancer, Cache } = require('axios-extensions');
 const qs = require('qs');
 const R = require('ramda');
 

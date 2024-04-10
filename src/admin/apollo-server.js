@@ -1,7 +1,6 @@
 const fs = require('fs');
 const express = require('express');
-const { ApolloServer } = require('apollo-server-express');
-const responseCachePlugin = require('apollo-server-plugin-response-cache').default;
+const { ApolloServer } = require('@apollo/server');
 
 const { resolvers } = require('./resolvers');
 const public = require('../common/public-schema');

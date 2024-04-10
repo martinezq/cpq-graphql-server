@@ -1,17 +1,17 @@
-const { ApolloError, AuthenticationError } = require('apollo-server');
+const { ApolloError, AuthenticationError } = require('@apollo/server');
 
 const Axios = require('axios');
-const { throttleAdapterEnhancer, cacheAdapterEnhancer, Cache } = require('axios-extensions');
+// const { throttleAdapterEnhancer, cacheAdapterEnhancer, Cache } = require('axios-extensions');
 const R = require('ramda');
 
 const MAX_AGE = 5 * 1000;
 const THRESHOLD = 5 * 1000;
 
 const axios = Axios.create({
-    adapter: throttleAdapterEnhancer(
-        cacheAdapterEnhancer(Axios.defaults.adapter, { defaultCache: new Cache({ maxAge: MAX_AGE, max: 100 })}), 
-        { threshold: THRESHOLD }
-    )
+    // adapter: throttleAdapterEnhancer(
+    //     cacheAdapterEnhancer(Axios.defaults.adapter, { defaultCache: new Cache({ maxAge: MAX_AGE, max: 100 })}), 
+    //     { threshold: THRESHOLD }
+    // )
 });
 
 async function listTickets({ baseurl, headers }) {
