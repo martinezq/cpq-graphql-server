@@ -67,6 +67,7 @@ async function generateSchema() {
 
         type AttributeAggregate {
             attribute: AssemblyAttribute
+            feature: Feature
             position: AssemblyPosition
         }
 
@@ -120,9 +121,51 @@ async function generateSchema() {
             positions: [AssemblyPosition]
         }
 
+        type Feature {
+            id: ID
+            name: String
+            description: String
+            descriptionTranslations: LocalizedString            
+            domain: Domain
+            initialValue: String
+        }
+
+        enum Status {
+            Active
+        }
+
+        type FeatureValue {
+            attribute: AssemblyAttribute
+            feature: Feature
+            value: String
+        }
+
+        type ModuleVariant {
+            id: ID
+            name: String
+            description: String
+            descriptionTranslations: LocalizedString
+            longDescription: String
+            longDescriptionTranslations: LocalizedString
+            status: Status
+            image: String
+            document: String
+            values: [FeatureValue]
+        }
+
+        type Module {
+            id: ID
+            name: String
+            description: String
+            descriptionTranslations: LocalizedString 
+            features: [Feature]    
+            variants: [ModuleVariant]      
+        }
+
         type Query {
             listDomains: [Domain]
             listAssemblies: [Assembly]
+            listModules: [Module]
         }
 
         type Mutation {

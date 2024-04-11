@@ -3,8 +3,6 @@ const parser = require('xml2json');
 
 const cpq = require('./cpq-client');
 const public = require('../common/public-schema');
-const { parse } = require('qs');
-
 
 async function generateResolvers() {
 
@@ -12,7 +10,8 @@ async function generateResolvers() {
         ...public.resolvers.Query,
         status: () => 'ready',
         listDomains,
-        listAssemblies
+        listAssemblies,
+        listModules
     };
 
     let Mutation = {
@@ -21,6 +20,9 @@ async function generateResolvers() {
 
     let typeResolvers = {
         AssemblyAttribute: {
+            domain: async (parent, args, context, info) => resolveType(parent, args, context, info, parent.domainNamedReference)
+        },
+        Feature: {
             domain: async (parent, args, context, info) => resolveType(parent, args, context, info, parent.domainNamedReference)
         }
     };
@@ -84,6 +86,48 @@ async function listAssemblies(parent, args, context, info) {
             ...assemblyResource.assembly,
             attributes,
             positions
+        };
+    });
+}
+
+async function listModules(parent, args, context, info) {
+    const data = await cpq.listModules(context);
+
+    return data.moduleResourceList.map(moduleResource => {
+        const id = moduleResource.moduleReference.id;
+
+        const features = 
+            data.featureResourceList
+            .filter(featureResource => featureResource.feature.parentModuleNamedReference.id === id)
+            .map(featureResource => ({
+                id: featureResource.featureReference.id,
+                ...featureResource.feature
+            }));
+
+        const variants = 
+            data.variantResourceList
+            .filter(variantResource => variantResource.variant.parentModuleNamedReference.id === id)
+            .map(variantResource => {
+                const variantValues = 
+                    variantResource.variant.variantValueList
+                    .map(variantValue => ({
+                        ... variantValue,
+                        feature: variantValue.featureNamedReference
+                    }));
+                
+                 return {
+                    id: variantResource.variantReference.id,
+                    ...variantResource.variant,
+                    values: variantValues
+                }
+            });      
+           
+        
+        return {
+            id: moduleResource.moduleReference.id, 
+            ...moduleResource.module,
+            features,
+            variants
         };
     });
 }

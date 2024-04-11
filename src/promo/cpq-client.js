@@ -47,6 +47,10 @@ async function listAssemblies(context) {
     return listObjects(context, 'assembly');
 }
 
+async function listModules(context) {
+    return listObjects(context, 'module');
+}
+
 async function handleErrors(func, body, retries) {
     retries = retries !== undefined ? retries : 1;
     const delay = 1000;
@@ -134,5 +138,6 @@ async function wait(ms) {
 module.exports = {
     getDomain,
     listDomains,
-    listAssemblies
+    listAssemblies,
+    listModules
 };
