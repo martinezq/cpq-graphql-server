@@ -6,12 +6,122 @@ async function generateSchema() {
     const schema = `
         ${public.schema}
 
-        type Assembly {
+        type Ref {
             id: ID
             name: String
         }
 
+        type LocalizedString {
+            en: String
+            de: String
+        }
+
+        type EnumElement {
+            name: String
+            description: String
+            descriptionTranslations: LocalizedString
+            longDescription: String
+            longDescriptionTranslations: LocalizedString
+        }
+
+        enum DomainType {
+            Boolean
+            Enum
+            Integer
+            String
+            Float
+        }
+
+        type DomainTypeRange {
+            min: Float
+            max: Float
+        }
+
+        type DomainBooleanValue {
+            name: String
+            nameTranslations: LocalizedString
+        }
+
+        type Domain {
+            id: ID
+            name: String
+            description: String
+            type: DomainType
+            booleanYes: DomainBooleanValue
+            booleanNo: DomainBooleanValue
+            floatRange: DomainTypeRange
+            integerRange: DomainTypeRange
+            enumElementList: [EnumElement]
+        }
+
+        type AssemblyAttributeCategory {
+            id: ID
+            name: String
+        }
+
+        enum AggregationStrategy {
+            None
+            Equal
+            Sum
+        }
+
+        type AttributeAggregate {
+            attribute: AssemblyAttribute
+            position: AssemblyPosition
+        }
+
+        enum PositionType {
+            Module
+            Assembly
+        }
+
+        enum QtyType {
+            Configurable
+            Static
+        }
+
+        type AssemblyPosition {
+            id: ID
+            name: String
+            description: String
+            descriptionTranslations: LocalizedString            
+            type: PositionType
+            defaultView: Boolean
+            dynamic: Boolean
+            enabled: Boolean
+            qtyType: QtyType
+            qty: Int
+            qtyMin: Int
+            qtyMax: Int
+            module: Ref
+            assembly: Ref
+        }
+
+        type AssemblyAttribute {
+            id: ID
+            name: String
+            description: String
+            descriptionTranslations: LocalizedString
+            io: Boolean
+            category: AssemblyAttributeCategory
+            domain: Domain
+            defaultView: Boolean
+            aggregationStrategy: AggregationStrategy
+            aggregateList: [AttributeAggregate]
+        }
+
+        type Assembly {
+            id: ID
+            name: String
+            description: String
+            descriptionTranslations: LocalizedString
+            consistencyCheckStrategy: String
+            attributes: [AssemblyAttribute]
+            positions: [AssemblyPosition]
+        }
+
         type Query {
+            listDomains: [Domain]
             listAssemblies: [Assembly]
         }
 

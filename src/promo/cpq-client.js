@@ -7,9 +7,9 @@ const axios = Axios.create({
     timeout: 180000
 });
 
-async function listAssemblies(context) {
+async function listObjects(context, objectType) {
     const { baseurl, ticket, headers } = context;
-    const url = `${baseurl}/${ENDPOINT}/${ticket}/assembly/list`;
+    const url = `${baseurl}/${ENDPOINT}/${ticket}/${objectType}/list`;
 
     console.log('GET', url);
 
@@ -18,6 +18,33 @@ async function listAssemblies(context) {
     );
 
     return resp.data;
+}
+
+async function getObjectById(context, objectType, id) {
+    const { baseurl, ticket, headers } = context;
+    const url = `${baseurl}/${ENDPOINT}/${ticket}/${objectType}/${id}`;
+
+    console.log('GET', url);
+
+    const resp = await handleErrors(
+        () => axios.get(url, { headers: { Authorization: headers?.authorization } })
+    );
+
+    return resp.data;
+}
+
+// ----------------------------------------------------------------------------
+
+async function getDomain(context, id) {
+    return getObjectById(context, 'domain', id);
+}
+
+async function listDomains(context) {
+    return listObjects(context, 'domain');
+}
+
+async function listAssemblies(context) {
+    return listObjects(context, 'assembly');
 }
 
 async function handleErrors(func, body, retries) {
@@ -105,5 +132,7 @@ async function wait(ms) {
 }
 
 module.exports = {
+    getDomain,
+    listDomains,
     listAssemblies
 };
