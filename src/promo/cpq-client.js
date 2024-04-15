@@ -48,6 +48,19 @@ async function deleteObject(context, objectType, id) {
     return resp.data;
 }
 
+async function upsertObject(context, objectType, obj) {
+    const { baseurl, ticket, headers } = context;
+    const url = `${baseurl}/${ENDPOINT}/${ticket}/${objectType}`;
+
+    console.log('POST', url);
+
+    const resp = await handleErrors(
+        () => axios.post(url, obj, { headers: { Authorization: headers?.authorization } })
+    );
+
+    return resp.data;
+}
+
 // ----------------------------------------------------------------------------
 
 async function getDomain(context, id) {
@@ -76,6 +89,10 @@ async function deleteAssembly(context, id) {
 
 async function deleteModule(context, id) {
     return deleteObject(context, 'module', id);
+}
+
+async function upsertDomain(context, obj) {
+    return upsertObject(context, 'domain', obj);
 }
 
 // ----------------------------------------------------------------------------
@@ -107,7 +124,7 @@ async function handleErrors(func, body, retries) {
             };
 
             console.log('REQUEST DATA', body);
-            return Promise.reject(new GraphQLError(e.message, { code: status })); 
+            return Promise.reject(new GraphQLError([e.message, e.response.message, e.response.data.message].join('\n'), { code: status })); 
 
         }
 
@@ -171,5 +188,6 @@ module.exports = {
     listModules,
     deleteDomain,
     deleteAssembly,
-    deleteModule
+    deleteModule,
+    upsertDomain
 };

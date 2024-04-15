@@ -168,7 +168,43 @@ async function generateSchema() {
             listModules: [Module]
         }
 
+        input LocalizedStringInput {
+            en: String
+            de: String            
+        }
+
+        input EnumElementInput {
+            name: String!
+            description: String
+            descriptionTranslations: LocalizedStringInput
+            longDescription: String
+            longDescriptionTranslations: LocalizedStringInput
+        }
+
+        input DomainTypeRangeInput {
+            min: Float
+            max: Float
+        }
+
+        input DomainBooleanValueInput {
+            name: String
+            nameTranslations: LocalizedStringInput
+        }        
+
+        input DomainInput {
+            id: ID
+            name: String!
+            description: String
+            type: DomainType!
+            booleanYes: DomainBooleanValueInput
+            booleanNo: DomainBooleanValueInput
+            floatRange: DomainTypeRangeInput
+            integerRange: DomainTypeRangeInput
+            enumElementList: [EnumElementInput]            
+        }
+
         type Mutation {
+            upsertDomain(domain: DomainInput): Domain
             deleteDomain(id: ID): Boolean
             deleteModule(id: ID): Boolean
             deleteAssembly(id: ID): Boolean

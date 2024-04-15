@@ -18,7 +18,8 @@ async function generateResolvers() {
         ...public.resolvers.Mutation,
         deleteDomain,
         deleteAssembly,
-        deleteModule
+        deleteModule,
+        upsertDomain
     };
 
     let typeResolvers = {
@@ -145,10 +146,16 @@ async function deleteAssembly(parent, args, context, info) {
     return true;
 }
 
-
 async function deleteModule(parent, args, context, info) {
     await cpq.deleteModule(context, args.id);
     return true;
+}
+
+async function upsertDomain(parent, args, context, info) {
+    const data = await cpq.upsertDomain(context, args);
+    const id = data.domainNamedReference.id;
+    const domain = await cpq.getDomain(context, id);
+    return {id: domain.domainResource.domainReference.id, ...domain.domainResource.domain};
 }
 
 module.exports = {
