@@ -58,13 +58,15 @@ async function registerApolloServer(server, path) {
         cors(),
         express.json(),
         expressMiddleware(server, {
-            context: async ({ req }) => ({
-                baseurl: `https:/${path.split('/')[1]}`,
-                ticket: path.split('/')[2],
-                headers: {
-                    authorization: req.headers.authorization
-                }
-            }),
+            context: async ({ req }) => {
+                return {
+                    baseurl: `https:/${path.split('/')[1]}`,
+                    ticket: path.split('/')[2],
+                    headers: {
+                        authorization: req.headers.authorization
+                    }
+                };
+            }
         })
     );
 

@@ -1,6 +1,8 @@
 const Axios = require('axios');
 const R = require('ramda');
 
+const { GraphQLError } = require('graphql');
+
 const ENDPOINT = 'api/product-modeling/v2';
 
 const axios = Axios.create({
@@ -33,6 +35,19 @@ async function getObjectById(context, objectType, id) {
     return resp.data;
 }
 
+async function deleteObject(context, objectType, id) {
+    const { baseurl, ticket, headers } = context;
+    const url = `${baseurl}/${ENDPOINT}/${ticket}/${objectType}/${id}`;
+
+    console.log('DELETE', url);
+
+    const resp = await handleErrors(
+        () => axios.delete(url, { headers: { Authorization: headers?.authorization } })
+    );
+
+    return resp.data;
+}
+
 // ----------------------------------------------------------------------------
 
 async function getDomain(context, id) {
@@ -50,6 +65,20 @@ async function listAssemblies(context) {
 async function listModules(context) {
     return listObjects(context, 'module');
 }
+
+async function deleteDomain(context, id) {
+    return deleteObject(context, 'domain', id);
+}
+
+async function deleteAssembly(context, id) {
+    return deleteObject(context, 'assembly', id);
+}
+
+async function deleteModule(context, id) {
+    return deleteObject(context, 'module', id);
+}
+
+// ----------------------------------------------------------------------------
 
 async function handleErrors(func, body, retries) {
     retries = retries !== undefined ? retries : 1;
@@ -71,18 +100,18 @@ async function handleErrors(func, body, retries) {
                         console.log('...Retrying last command');
                         return wait(delay).then(() => handleErrors(func, body, retries - 1));
                     } else {
-                        return Promise.reject(new ApolloError(r.data, status)); 
+                        return Promise.reject(new GraphQLError(e.message, { code: status, data: r.data })); 
                     }
                 case 403:
-                    return Promise.reject(new AuthenticationError('Authentication error, check "Authorization" header and CPQ permissions!'));
+                    return Promise.reject(new GraphQLError('Authentication error, check "Authorization" header and CPQ permissions!', { code: status }));
             };
 
             console.log('REQUEST DATA', body);
-            return Promise.reject(new ApolloError(r.data, status));
+            return Promise.reject(new GraphQLError(e.message, { code: status })); 
 
         }
 
-        return Promise.reject(new ApolloError(error.message, error.status));
+        return Promise.reject(new GraphQLError(e.message, { code: error.status })); 
     });
 }
 
@@ -139,5 +168,8 @@ module.exports = {
     getDomain,
     listDomains,
     listAssemblies,
-    listModules
+    listModules,
+    deleteDomain,
+    deleteAssembly,
+    deleteModule
 };

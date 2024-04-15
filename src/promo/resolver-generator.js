@@ -15,7 +15,10 @@ async function generateResolvers() {
     };
 
     let Mutation = {
-        ...public.resolvers.Mutation
+        ...public.resolvers.Mutation,
+        deleteDomain,
+        deleteAssembly,
+        deleteModule
     };
 
     let typeResolvers = {
@@ -130,6 +133,22 @@ async function listModules(parent, args, context, info) {
             variants
         };
     });
+}
+
+async function deleteDomain(parent, args, context, info) {
+    await cpq.deleteDomain(context, args.id);
+    return true;
+}
+
+async function deleteAssembly(parent, args, context, info) {
+    await cpq.deleteAssembly(context, args.id);
+    return true;
+}
+
+
+async function deleteModule(parent, args, context, info) {
+    await cpq.deleteModule(context, args.id);
+    return true;
 }
 
 module.exports = {

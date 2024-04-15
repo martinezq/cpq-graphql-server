@@ -169,7 +169,9 @@ async function generateSchema() {
         }
 
         type Mutation {
-            test(_id: ID): Boolean
+            deleteDomain(id: ID): Boolean
+            deleteModule(id: ID): Boolean
+            deleteAssembly(id: ID): Boolean
         }
     `;
 
