@@ -19,7 +19,8 @@ async function generateResolvers() {
         deleteDomain,
         deleteAssembly,
         deleteModule,
-        upsertDomain
+        upsertDomain,
+        upsertModule
     };
 
     let typeResolvers = {
@@ -157,6 +158,34 @@ async function upsertDomain(parent, args, context, info) {
     const domain = await cpq.getDomain(context, id);
     return {id: domain.domainResource.domainReference.id, ...domain.domainResource.domain};
 }
+
+async function upsertModule(parent, args, context, info) {
+    console.log(JSON.stringify(args, null, 2));
+
+    const input = {
+        module: R.omit(['features', 'variants'], args.module),
+        featureList: args.module.features.map(f => ({
+            ...f,
+            parentModuleNamedReference: { name: args.module.name },
+            domainNamedReference: { name: f.domain.name }
+        })),
+        variantList: args.module.variants.map(v => ({
+            ...v,
+            status: v.status || 'Active',
+            parentModuleNamedReference: { name: args.module.name },
+            variantValueList: v.values.map(vv => ({
+                featureNamedReference: { name: vv.feature.name },
+                value: vv.value
+            }))
+        }))
+    };
+
+    const data = await cpq.upsertModule(context, input);
+    const id = data.moduleNamedReference.id;
+    
+    return { id };
+}
+
 
 module.exports = {
     generateResolvers

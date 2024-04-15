@@ -125,7 +125,7 @@ async function generateSchema() {
             id: ID
             name: String
             description: String
-            descriptionTranslations: LocalizedString            
+            descriptionTranslations: LocalizedString
             domain: Domain
             initialValue: String
         }
@@ -203,8 +203,51 @@ async function generateSchema() {
             enumElementList: [EnumElementInput]            
         }
 
+        input FeatureInput {
+            id: ID
+            name: String!
+            description: String
+            descriptionTranslations: LocalizedStringInput            
+            domain: RefInput!
+            initialValue: String
+        }
+
+        input RefInput {
+            id: ID
+            name: String
+        }
+
+        input FeatureValueInput {
+            # attribute: AssemblyAttribute
+            feature: RefInput
+            value: String
+        }
+
+        input ModuleVariantInput {
+            id: ID
+            name: String
+            description: String
+            descriptionTranslations: LocalizedStringInput
+            longDescription: String
+            longDescriptionTranslations: LocalizedStringInput
+            status: Status
+            image: String
+            document: String
+            values: [FeatureValueInput]
+        }
+
+        input ModuleInput {
+            id: ID
+            name: String!
+            description: String
+            descriptionTranslations: LocalizedStringInput 
+            features: [FeatureInput]!
+            variants: [ModuleVariantInput]      
+        }        
+
         type Mutation {
             upsertDomain(domain: DomainInput): Domain
+            upsertModule(module: ModuleInput): Module
             deleteDomain(id: ID): Boolean
             deleteModule(id: ID): Boolean
             deleteAssembly(id: ID): Boolean

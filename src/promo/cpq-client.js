@@ -95,6 +95,10 @@ async function upsertDomain(context, obj) {
     return upsertObject(context, 'domain', obj);
 }
 
+async function upsertModule(context, obj) {
+    return upsertObject(context, 'module', obj);
+}
+
 // ----------------------------------------------------------------------------
 
 async function handleErrors(func, body, retries) {
@@ -189,5 +193,6 @@ module.exports = {
     deleteDomain,
     deleteAssembly,
     deleteModule,
-    upsertDomain
+    upsertDomain,
+    upsertModule
 };
