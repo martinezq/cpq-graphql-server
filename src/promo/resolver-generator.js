@@ -4,6 +4,9 @@ const parser = require('xml2json');
 const cpq = require('./cpq-client');
 const public = require('../common/public-schema');
 
+const assemblyMapper = require('./assembly-mapper');
+const moduleMapper = require('./module-mapper');
+
 async function generateResolvers() {
 
     let Query = {
@@ -20,7 +23,9 @@ async function generateResolvers() {
         deleteAssembly,
         deleteModule,
         upsertDomain,
-        upsertModule
+        upsertModule,
+        upsertAssembly
+        // deltaUpsertDomain
     };
 
     let typeResolvers = {
@@ -34,6 +39,10 @@ async function generateResolvers() {
 
     return {Query, Mutation, ...typeResolvers};
 }
+
+// ----------------------------------------------------------------------------
+
+
 
 // ----------------------------------------------------------------------------
 
@@ -55,86 +64,16 @@ async function listDomains(parent, args, context, info) {
     return data.domainResourceList.map(x => ({id: x.domainReference.id, ...x.domain}));
 }
 
-
 async function listAssemblies(parent, args, context, info) {
     const data = await cpq.listAssemblies(context);
 
-    return data.assemblyResourceList.map(assemblyResource => {
-        const id = assemblyResource.assemblyReference.id;
-
-        const attributes = 
-            data.attributeResourceList
-            .filter(attributeResource => attributeResource.attribute.parentAssemblyNamedReference.id === id)
-            .map(attributeResource => ({
-                id: attributeResource.attributeReference.id,
-                ...attributeResource.attribute,
-                category: attributeResource.attribute.attributeCategoryNamedReference,
-                aggregateList: attributeResource.attribute.aggregateList?.map(x => ({
-                    attribute: x.attributeNamedReference,
-                    feature: x.featureNamedReference,
-                    position: x.positionNamedReference
-                }))
-            }));
-
-        const positions = 
-            data.positionResourceList
-            .filter(positionResource => positionResource.position.parentAssemblyNamedReference.id === id)
-            .map(positionResource => ({
-                id: positionResource.positionReference.id,
-                ...positionResource.position,
-                module: positionResource.position.moduleNamedReference,
-                assembly: positionResource.position.assemblyNamedReference,
-            }));            
-
-        return {
-            id, 
-            ...assemblyResource.assembly,
-            attributes,
-            positions
-        };
-    });
+    return data.assemblyResourceList.map(res => assemblyMapper.parseAssemblyResource(res, data));
 }
 
 async function listModules(parent, args, context, info) {
     const data = await cpq.listModules(context);
 
-    return data.moduleResourceList.map(moduleResource => {
-        const id = moduleResource.moduleReference.id;
-
-        const features = 
-            data.featureResourceList
-            .filter(featureResource => featureResource.feature.parentModuleNamedReference.id === id)
-            .map(featureResource => ({
-                id: featureResource.featureReference.id,
-                ...featureResource.feature
-            }));
-
-        const variants = 
-            data.variantResourceList
-            .filter(variantResource => variantResource.variant.parentModuleNamedReference.id === id)
-            .map(variantResource => {
-                const variantValues = 
-                    variantResource.variant.variantValueList
-                    .map(variantValue => ({
-                        ... variantValue,
-                        feature: variantValue.featureNamedReference
-                    }));
-                
-                 return {
-                    id: variantResource.variantReference.id,
-                    ...variantResource.variant,
-                    values: variantValues
-                }
-            });      
-           
-        
-        return {
-            id: moduleResource.moduleReference.id, 
-            ...moduleResource.module,
-            features,
-            variants
-        };
-    });
+    return data.moduleResourceList.map(moduleResource => moduleMapper.parseModuleResource(moduleResource, data));
 }
 
 async function deleteDomain(parent, args, context, info) {
@@ -159,31 +98,64 @@ async function upsertDomain(parent, args, context, info) {
     return {id: domain.domainResource.domainReference.id, ...domain.domainResource.domain};
 }
 
+// async function deltaUpsertDomain(parent, args, context, info) {
+//     const oldDomain = await cpq.getDomainByName(context, args.domain.name);
+
+//     let mergedDomain = R.clone({ domain: oldDomain.domainResource.domain });
+
+//     mergedDomain.domain.description = args.domain.description || mergedDomain.domain.description;
+    
+//     args.domain.enumElementList?.forEach(e => {
+//         let existingElement = mergedDomain.domain.enumElementList.find(e2 => e2.name === e.name);
+
+//         if (existingElement) {
+//             existingElement.description = e.description || existingElement.description;
+//         } else {
+//             mergedDomain.domain.enumElementList.push(e);
+//         }
+//     });
+
+//     const data = await cpq.upsertDomain(context, mergedDomain);
+//     const id = data.domainNamedReference.id;
+
+//     return { id };
+// }
+
+
 async function upsertModule(parent, args, context, info) {
     console.log(JSON.stringify(args, null, 2));
 
-    const input = {
-        module: R.omit(['features', 'variants'], args.module),
-        featureList: args.module.features.map(f => ({
-            ...f,
-            parentModuleNamedReference: { name: args.module.name },
-            domainNamedReference: { name: f.domain.name }
-        })),
-        variantList: args.module.variants.map(v => ({
-            ...v,
-            status: v.status || 'Active',
-            parentModuleNamedReference: { name: args.module.name },
-            variantValueList: v.values.map(vv => ({
-                featureNamedReference: { name: vv.feature.name },
-                value: vv.value
-            }))
-        }))
-    };
+    const resource = moduleMapper.buildModuleResource(args.module);
 
-    const data = await cpq.upsertModule(context, input);
+    const data = await cpq.upsertModule(context, resource);
     const id = data.moduleNamedReference.id;
     
     return { id };
+}
+
+async function upsertAssembly(parent, args, context, info) {
+    const modules = await listModules(parent, args, context, info);
+
+    const assemblyResource = assemblyMapper.buildAssemblyResource(args.assembly, { modules });
+
+    const data = await cpq.upsertAssembly(context, assemblyResource);
+    const id = data.assemblyNamedReference.id;
+
+    const resp = await cpq.getAssembly(context, id);
+
+    const assembly2 = assemblyMapper.parseAssemblyResource({
+        ...resp.assemblyResource,
+        ...R.omit(['assemblyResource'], resp)
+    }, resp);
+
+    const mergedAssembly = assemblyMapper.mergeAssembly(assembly2, args.assembly);
+
+    const assemblyResource2 = assemblyMapper.buildAssemblyResource(mergedAssembly, { modules }, { includeCombinationRows: true });
+
+    const data2 = await cpq.upsertAssembly(context, assemblyResource2);    
+    const id2 = data2.assemblyNamedReference.id;
+
+    return { id: id2 };
 }
 
 

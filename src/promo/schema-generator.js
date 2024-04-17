@@ -6,15 +6,62 @@ async function generateSchema() {
     const schema = `
         ${public.schema}
 
+        enum DomainType {
+            Boolean
+            Enum
+            Integer
+            String
+            Float
+        }
+
+        enum Status {
+            Active
+        }      
+        
+        enum AggregationStrategy {
+            None
+            Equal
+            Sum
+        }        
+
+        enum PositionType {
+            Module
+            Assembly
+        }
+
+        enum QtyType {
+            Configurable
+            Static
+        }
+
+        enum RuleType {
+            Constraint
+            Combination
+        }
+
+        #######################################################################
+
         type Ref {
             id: ID
             name: String
         }
 
+        input RefInput {
+            id: ID
+            name: String
+        }        
+
+
         type LocalizedString {
             en: String
             de: String
         }
+
+        input LocalizedStringInput {
+            en: String
+            de: String            
+        }
+
 
         type EnumElement {
             name: String
@@ -24,23 +71,36 @@ async function generateSchema() {
             longDescriptionTranslations: LocalizedString
         }
 
-        enum DomainType {
-            Boolean
-            Enum
-            Integer
-            String
-            Float
-        }
+        input EnumElementInput {
+            name: String!
+            description: String
+            descriptionTranslations: LocalizedStringInput
+            longDescription: String
+            longDescriptionTranslations: LocalizedStringInput
+        }        
+
 
         type DomainTypeRange {
             min: Float
             max: Float
         }
 
+        input DomainTypeRangeInput {
+            min: Float
+            max: Float
+        }
+
+
         type DomainBooleanValue {
             name: String
             nameTranslations: LocalizedString
         }
+
+        input DomainBooleanValueInput {
+            name: String
+            nameTranslations: LocalizedStringInput
+        }  
+
 
         type Domain {
             id: ID
@@ -54,16 +114,40 @@ async function generateSchema() {
             enumElementList: [EnumElement]
         }
 
+        input DomainInput {
+            id: ID
+            name: String!
+            description: String
+            type: DomainType!
+            booleanYes: DomainBooleanValueInput
+            booleanNo: DomainBooleanValueInput
+            floatRange: DomainTypeRangeInput
+            integerRange: DomainTypeRangeInput
+            enumElementList: [EnumElementInput]            
+        }
+
+        input DomainDeltaInput {
+            id: ID
+            name: String!
+            description: String
+            # booleanYes: DomainBooleanValueInput
+            # booleanNo: DomainBooleanValueInput
+            # floatRange: DomainTypeRangeInput
+            # integerRange: DomainTypeRangeInput
+            enumElementList: [EnumElementInput]            
+        }        
+
+
         type AssemblyAttributeCategory {
             id: ID
             name: String
         }
 
-        enum AggregationStrategy {
-            None
-            Equal
-            Sum
-        }
+        input AssemblyAttributeCategoryInput {
+            id: ID
+            name: String
+        }        
+
 
         type AttributeAggregate {
             attribute: AssemblyAttribute
@@ -71,15 +155,12 @@ async function generateSchema() {
             position: AssemblyPosition
         }
 
-        enum PositionType {
-            Module
-            Assembly
+        input AttributeAggregateInput {
+            attribute: AssemblyAttributeInput
+            feature: RefInput
+            position: RefInput
         }
 
-        enum QtyType {
-            Configurable
-            Static
-        }
 
         type AssemblyPosition {
             id: ID
@@ -98,6 +179,24 @@ async function generateSchema() {
             assembly: Ref
         }
 
+        input AssemblyPositionInput {
+            id: ID
+            name: String
+            description: String
+            descriptionTranslations: LocalizedStringInput
+            type: PositionType
+            defaultView: Boolean
+            dynamic: Boolean
+            enabled: Boolean
+            qtyType: QtyType
+            qty: Int
+            qtyMin: Int
+            qtyMax: Int
+            module: RefInput
+            assembly: RefInput
+        }
+
+
         type AssemblyAttribute {
             id: ID
             name: String
@@ -111,6 +210,57 @@ async function generateSchema() {
             aggregateList: [AttributeAggregate]
         }
 
+        input AssemblyAttributeInput {
+            id: ID
+            name: String
+            description: String
+            descriptionTranslations: LocalizedStringInput
+            io: Boolean
+            category: AssemblyAttributeCategoryInput
+            domain: RefInput
+            defaultView: Boolean
+            aggregationStrategy: AggregationStrategy
+            aggregateList: [AttributeAggregateInput]
+        }        
+
+
+        type Row {
+            values: [String]
+        }
+
+        input RowInput {
+            values: [String]
+        }
+
+
+        type Combination {
+            columns: [String]
+            rows: [Row]
+        }
+
+        input CombinationInput {
+            columns: [String]
+            rows: [RowInput]
+        }
+
+
+        type Rule {
+            type: RuleType
+            ruleGroup: String
+            enabled: Boolean
+            constraint: String
+            combination: Combination
+        }
+
+        input RuleInput {
+            type: RuleType
+            ruleGroup: String
+            enabled: Boolean
+            constraint: String
+            combination: CombinationInput
+        }
+
+
         type Assembly {
             id: ID
             name: String
@@ -119,7 +269,20 @@ async function generateSchema() {
             consistencyCheckStrategy: String
             attributes: [AssemblyAttribute]
             positions: [AssemblyPosition]
+            rules: [Rule]
         }
+
+        input AssemblyInput {
+            id: ID
+            name: String
+            description: String
+            descriptionTranslations: LocalizedStringInput
+            consistencyCheckStrategy: String
+            attributes: [AssemblyAttributeInput]
+            positions: [AssemblyPositionInput]
+            rules: [RuleInput]
+        }
+
 
         type Feature {
             id: ID
@@ -130,15 +293,28 @@ async function generateSchema() {
             initialValue: String
         }
 
-        enum Status {
-            Active
+        input FeatureInput {
+            id: ID
+            name: String!
+            description: String
+            descriptionTranslations: LocalizedStringInput            
+            domain: RefInput
+            initialValue: String
         }
+
 
         type FeatureValue {
             attribute: AssemblyAttribute
             feature: Feature
             value: String
         }
+
+        input FeatureValueInput {
+            # attribute: AssemblyAttribute
+            feature: RefInput
+            value: String
+        }        
+
 
         type ModuleVariant {
             id: ID
@@ -151,76 +327,6 @@ async function generateSchema() {
             image: String
             document: String
             values: [FeatureValue]
-        }
-
-        type Module {
-            id: ID
-            name: String
-            description: String
-            descriptionTranslations: LocalizedString 
-            features: [Feature]    
-            variants: [ModuleVariant]      
-        }
-
-        type Query {
-            listDomains: [Domain]
-            listAssemblies: [Assembly]
-            listModules: [Module]
-        }
-
-        input LocalizedStringInput {
-            en: String
-            de: String            
-        }
-
-        input EnumElementInput {
-            name: String!
-            description: String
-            descriptionTranslations: LocalizedStringInput
-            longDescription: String
-            longDescriptionTranslations: LocalizedStringInput
-        }
-
-        input DomainTypeRangeInput {
-            min: Float
-            max: Float
-        }
-
-        input DomainBooleanValueInput {
-            name: String
-            nameTranslations: LocalizedStringInput
-        }        
-
-        input DomainInput {
-            id: ID
-            name: String!
-            description: String
-            type: DomainType!
-            booleanYes: DomainBooleanValueInput
-            booleanNo: DomainBooleanValueInput
-            floatRange: DomainTypeRangeInput
-            integerRange: DomainTypeRangeInput
-            enumElementList: [EnumElementInput]            
-        }
-
-        input FeatureInput {
-            id: ID
-            name: String!
-            description: String
-            descriptionTranslations: LocalizedStringInput            
-            domain: RefInput!
-            initialValue: String
-        }
-
-        input RefInput {
-            id: ID
-            name: String
-        }
-
-        input FeatureValueInput {
-            # attribute: AssemblyAttribute
-            feature: RefInput
-            value: String
         }
 
         input ModuleVariantInput {
@@ -236,18 +342,41 @@ async function generateSchema() {
             values: [FeatureValueInput]
         }
 
+
+        type Module {
+            id: ID
+            name: String
+            description: String
+            descriptionTranslations: LocalizedString 
+            features: [Feature]    
+            variants: [ModuleVariant]      
+        }
+
         input ModuleInput {
             id: ID
             name: String!
             description: String
             descriptionTranslations: LocalizedStringInput 
-            features: [FeatureInput]!
+            features: [FeatureInput]
             variants: [ModuleVariantInput]      
-        }        
+        }          
+
+        #######################################################################
+
+        type Query {
+            listDomains: [Domain]
+            listAssemblies: [Assembly]
+            listModules: [Module]
+        }
+
+        #######################################################################
 
         type Mutation {
             upsertDomain(domain: DomainInput): Domain
             upsertModule(module: ModuleInput): Module
+            upsertAssembly(assembly: AssemblyInput): Assembly
+            # deltaUpsertDomain(domain: DomainDeltaInput): Domain
+            # deltaUpsertModule(module: ModuleInput): Module
             deleteDomain(id: ID): Boolean
             deleteModule(id: ID): Boolean
             deleteAssembly(id: ID): Boolean
