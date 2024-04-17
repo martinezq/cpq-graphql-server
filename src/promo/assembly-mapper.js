@@ -38,7 +38,10 @@ function parseAssemblyResource(assemblyResource, { attributeResourceList, positi
                 columns: ruleResource.rule.combinationRuleColumnList.map(c => c.value.replace(' » ', '.')),
                 columnIds: ruleResource.rule.combinationRuleColumnList.map(c => c.id),
                 rows: ruleResource.rule.combinationRuleRowList.map(r => ({
-                    values: r.combinationRuleCellList.map(v => v.value)
+                    values: R.sortBy(
+                        cc => ruleResource.rule.combinationRuleColumnList.findIndex(c => c.id === cc.combinationRuleColumnReference.id), 
+                        r.combinationRuleCellList
+                    ).map(v => v.value)
                 }))
             } : undefined
         }));

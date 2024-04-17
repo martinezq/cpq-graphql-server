@@ -141,12 +141,12 @@ async function upsertAssembly(parent, args, context, info) {
     const data = await cpq.upsertAssembly(context, assemblyResource);
     const id = data.assemblyNamedReference.id;
 
-    const resp = await cpq.getAssembly(context, id);
+    const resp2 = await cpq.getAssembly(context, id);
 
     const assembly2 = assemblyMapper.parseAssemblyResource({
-        ...resp.assemblyResource,
-        ...R.omit(['assemblyResource'], resp)
-    }, resp);
+        ...resp2.assemblyResource,
+        ...R.omit(['assemblyResource'], resp2)
+    }, resp2);
 
     const mergedAssembly = assemblyMapper.mergeAssembly(assembly2, args.assembly);
 
@@ -155,7 +155,14 @@ async function upsertAssembly(parent, args, context, info) {
     const data2 = await cpq.upsertAssembly(context, assemblyResource2);    
     const id2 = data2.assemblyNamedReference.id;
 
-    return { id: id2 };
+    const resp3 = await cpq.getAssembly(context, id2);
+
+    const assembly3 = assemblyMapper.parseAssemblyResource({
+        ...resp3.assemblyResource,
+        ...R.omit(['assemblyResource'], resp3)
+    }, resp3);
+
+    return assembly3;
 }
 
 
