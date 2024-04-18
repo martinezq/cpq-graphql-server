@@ -6,6 +6,7 @@ const public = require('../common/public-schema');
 
 const assemblyMapper = require('./assembly-mapper');
 const moduleMapper = require('./module-mapper');
+const domainMapper = require('./domain-mapper');
 
 async function generateResolvers() {
 
@@ -64,7 +65,7 @@ async function resolveType(parent, args, context, info, obj) {
 async function listDomains(parent, args, context, info) {
     const data = await cpq.listDomains(context);
 
-    return data.domainResourceList.map(x => ({id: x.domainReference.id, ...x.domain}));
+    return data.domainResourceList.map(res => domainMapper.parseDomainResource(res, data));
 }
 
 async function listAssemblies(parent, args, context, info) {
@@ -95,14 +96,14 @@ async function deleteModule(parent, args, context, info) {
 }
 
 async function upsertDomain(parent, args, context, info) {
-    const data = await cpq.upsertDomain(context, args);
-    const id = data.domainNamedReference.id;
-    const domain = await cpq.getDomain(context, id);
-    return {id: domain.domainResource.domainReference.id, ...domain.domainResource.domain};
+    const resource = domainMapper.buildDomainResource(args.domain);
+    const data = await cpq.upsertDomain(context, resource);
+    return data.domainNamedReference;
 }
 
 async function upsertDomains(parent, args, context, info) {
-    const data = await cpq.upsertDomains(context, { domainList: args.domains });
+    const resources = args.domains.map(domain => domainMapper.buildDomainResource(domain));
+    const data = await cpq.upsertDomains(context, { domainList: resources });
     return data.domainNamedReferenceList;
 }
 
