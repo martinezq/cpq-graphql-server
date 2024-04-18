@@ -372,14 +372,20 @@ async function generateSchema() {
         #######################################################################
 
         type Mutation {
-            upsertDomain(domain: DomainInput): Domain
-            upsertModule(module: ModuleInput): Module
-            upsertAssembly(assembly: AssemblyInput): Assembly
-            # deltaUpsertDomain(domain: DomainDeltaInput): Domain
-            # deltaUpsertModule(module: ModuleInput): Module
-            deleteDomain(id: ID): Boolean
-            deleteModule(id: ID): Boolean
-            deleteAssembly(id: ID): Boolean
+            upsertDomain(domain: DomainInput!): Domain
+            upsertDomains(domains: [DomainInput]!): [Domain]
+            deleteDomain(id: ID!): Boolean
+            
+            upsertModule(module: ModuleInput!): Module
+            upsertModules(modules: [ModuleInput]!): [Module]
+            deleteModule(id: ID!): Boolean
+            
+            upsertAssembly(assembly: AssemblyInput!): Assembly
+            upsertAssemblies(assemblies: [AssemblyInput]!): [Assembly]
+            deleteAssembly(id: ID!): Boolean
+            
+            # deltaUpsertDomain(domain: DomainDeltaInput!): Domain
+            # deltaUpsertModule(module: ModuleInput!): Module
         }
     `;
 

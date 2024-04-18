@@ -75,6 +75,20 @@ async function upsertObject(context, objectType, obj) {
     return resp.data;
 }
 
+async function upsertObjects(context, objectType, obj) {
+    const { baseurl, ticket, headers } = context;
+    const url = `${baseurl}/${ENDPOINT}/${ticket}/${objectType}/list`;
+
+    console.log('POST', url);
+
+    const resp = await handleErrors(
+        () => axios.post(url, obj, { headers: { Authorization: headers?.authorization } })
+    );
+
+    return resp.data;
+}
+
+
 // ----------------------------------------------------------------------------
 
 async function getDomain(context, id) {
@@ -117,14 +131,25 @@ async function upsertDomain(context, obj) {
     return upsertObject(context, 'domain', obj);
 }
 
+async function upsertDomains(context, obj) {
+    return upsertObjects(context, 'domain', obj);
+}
+
 async function upsertModule(context, obj) {
     return upsertObject(context, 'module', obj);
+}
+
+async function upsertModules(context, obj) {
+    return upsertObjects(context, 'module', obj);
 }
 
 async function upsertAssembly(context, obj) {
     return upsertObject(context, 'assembly', obj);
 }
 
+async function upsertAssemblies(context, obj) {
+    return upsertObjects(context, 'assembly', obj);
+}
 
 // ----------------------------------------------------------------------------
 
@@ -181,5 +206,8 @@ module.exports = {
     deleteModule,
     upsertDomain,
     upsertModule,
-    upsertAssembly
+    upsertAssembly,
+    upsertDomains,
+    upsertModules,
+    upsertAssemblies
 };

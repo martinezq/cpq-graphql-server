@@ -23,8 +23,11 @@ async function generateResolvers() {
         deleteAssembly,
         deleteModule,
         upsertDomain,
+        upsertDomains,
         upsertModule,
-        upsertAssembly
+        upsertModules,
+        upsertAssembly,
+        upsertAssemblies
         // deltaUpsertDomain
     };
 
@@ -98,6 +101,12 @@ async function upsertDomain(parent, args, context, info) {
     return {id: domain.domainResource.domainReference.id, ...domain.domainResource.domain};
 }
 
+async function upsertDomains(parent, args, context, info) {
+    const data = await cpq.upsertDomains(context, { domainList: args.domains });
+    return data.domainNamedReferenceList;
+}
+
+
 // async function deltaUpsertDomain(parent, args, context, info) {
 //     const oldDomain = await cpq.getDomainByName(context, args.domain.name);
 
@@ -123,14 +132,26 @@ async function upsertDomain(parent, args, context, info) {
 
 
 async function upsertModule(parent, args, context, info) {
-    console.log(JSON.stringify(args, null, 2));
-
     const resource = moduleMapper.buildModuleResource(args.module);
 
     const data = await cpq.upsertModule(context, resource);
     const id = data.moduleNamedReference.id;
     
     return { id };
+}
+
+async function upsertModules(parent, args, context, info) {
+    const resources = args.modules.map(module => moduleMapper.buildModuleResource(module));
+
+    const lists = {
+        moduleList: resources.map(r => r.module),
+        featureList: R.flatten(resources.map(r => r.featureList)),
+        variantList: R.flatten(resources.map(r => r.variantList))
+    };
+
+    const data = await cpq.upsertModules(context, lists);
+    
+    return data.moduleNamedReferenceList;
 }
 
 async function upsertAssembly(parent, args, context, info) {
@@ -165,6 +186,49 @@ async function upsertAssembly(parent, args, context, info) {
     return assembly3;
 }
 
+async function upsertAssemblies(parent, args, context, info) {
+    const modules = await listModules(parent, args, context, info);
+
+    const resources = args.assemblies.map(assembly => assemblyMapper.buildAssemblyResource(assembly, { modules }));
+
+    const lists = {
+        assemblyList: resources.map(r => r.assembly),
+        attributeList: R.flatten(resources.map(r => r.attributeList)),
+        positionList: R.flatten(resources.map(r => r.positionList)),
+        variantList: R.flatten(resources.map(r => r.variantList)),
+        ruleList: R.flatten(resources.map(r => r.ruleList))
+    };
+
+    const data = await cpq.upsertAssemblies(context, lists);
+
+    const resp2 = await cpq.listAssemblies(context);
+
+    const assemblies2 = resp2.assemblyResourceList.map(r2 => assemblyMapper.parseAssemblyResource({
+        ...r2.assemblyResource,
+        ...R.omit(['assemblyResource'], r2)
+    }, resp2));
+
+    const mergedAssemblies = assemblies2.map(assembly2 => {
+        const assemblyInput = args.assemblies.find(a => a.name === assembly2.name);
+        if (assemblyInput) {
+            return assemblyMapper.mergeAssembly(assembly2, assemblyInput);
+        }
+    }).filter(x => x !== undefined);
+
+    const resources2 = mergedAssemblies.map(assembly => assemblyMapper.buildAssemblyResource(assembly, { modules }, { includeCombinationRows: true }));
+    
+    const lists2 = {
+        assemblyList: resources2.map(r => r.assembly),
+        attributeList: R.flatten(resources2.map(r => r.attributeList)),
+        positionList: R.flatten(resources2.map(r => r.positionList)),
+        variantList: R.flatten(resources2.map(r => r.variantList)),
+        ruleList: R.flatten(resources2.map(r => r.ruleList))
+    };
+
+    const data2 = await cpq.upsertAssemblies(context, lists2);    
+
+    return data2.assemblyNamedReferenceList;
+}
 
 module.exports = {
     generateResolvers
