@@ -56,7 +56,7 @@ async function registerApolloServer(server, path) {
     router.use(
         path,
         cors(),
-        express.json(),
+        express.json({ limit: '2mb' }),
         expressMiddleware(server, {
             context: async ({ req }) => {
                 return {

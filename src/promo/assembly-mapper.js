@@ -66,6 +66,10 @@ function processCombinationColumns(combination, assembly, promoContext) {
 
     return columns.map((columnString, i) => {
         
+        if (!columnString) {
+            throw 'wrong column name: ' + columnString;
+        }
+
         const isLocalAttribute = columnString.indexOf('.') === -1;
         const isPosition = !isLocalAttribute;
 
