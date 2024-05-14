@@ -6,6 +6,8 @@ async function generateSchema() {
     const schema = `
         ${public.schema}
 
+        scalar JSON
+
         enum DomainType {
             Boolean
             Enum
@@ -37,6 +39,11 @@ async function generateSchema() {
         enum RuleType {
             Constraint
             Combination
+        }
+
+        enum ContentType {
+            JSON
+            XML
         }
 
         #######################################################################
@@ -261,6 +268,32 @@ async function generateSchema() {
         }
 
 
+        type AttributeValue {
+            attribute: AssemblyAttribute
+            feature: Feature
+            value: String
+        }
+
+        input AttributeValueInput {
+            attribute: RefInput
+            feature: RefInput
+            value: String
+        }    
+
+
+        type AssemblyVariant {
+            name: String
+            description: String
+            values: [AttributeValue]
+        }
+
+        input AssemblyVariantInput {
+            name: String
+            description: String
+            values: [AttributeValueInput]
+        }
+
+
         type Assembly {
             id: ID
             name: String
@@ -270,6 +303,8 @@ async function generateSchema() {
             attributes: [AssemblyAttribute]
             positions: [AssemblyPosition]
             rules: [Rule]
+            variantEnabled: Boolean
+            virtualVariant: AssemblyVariant
         }
 
         input AssemblyInput {
@@ -281,6 +316,8 @@ async function generateSchema() {
             attributes: [AssemblyAttributeInput]
             positions: [AssemblyPositionInput]
             rules: [RuleInput]
+            variantEnabled: Boolean
+            virtualVariant: AssemblyVariantInput
         }
 
 
@@ -367,6 +404,9 @@ async function generateSchema() {
             listDomains: [Domain]
             listAssemblies: [Assembly]
             listModules: [Module]
+
+            upsertDomainQuery(domain: DomainInput!, contentType: ContentType!): JSON
+            upsertDomainsQuery(domains: [DomainInput]!, contentType: ContentType!): JSON
         }
 
         #######################################################################

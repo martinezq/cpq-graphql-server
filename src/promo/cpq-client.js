@@ -184,7 +184,7 @@ async function handleErrors(func, body, retries) {
 
         }
 
-        return Promise.reject(new GraphQLError(e.message, { code: error.status })); 
+         return Promise.reject(new GraphQLError(e.message, { code: error.status })); 
     });
 }
 

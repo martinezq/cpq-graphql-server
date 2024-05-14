@@ -12,12 +12,13 @@ function parseDomainResource(domainResource) {
 // ----------------------------------------------------------------------------
 
 function buildDomainResource(domain, promoContext) {
-    return domain;
+    return { domain };
 }
 
 // ----------------------------------------------------------------------------
 
 module.exports = {
     parseDomainResource,
-    buildDomainResource
+    buildDomainResource,
+    // buildDomainResourceXML
 };

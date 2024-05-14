@@ -15,7 +15,9 @@ async function generateResolvers() {
         status: () => 'ready',
         listDomains,
         listAssemblies,
-        listModules
+        listModules,
+        // upsertDomainQuery,
+        // upsertDomainsQuery
     };
 
     let Mutation = {
@@ -96,15 +98,26 @@ async function deleteModule(parent, args, context, info) {
 }
 
 async function upsertDomain(parent, args, context, info) {
-    const resource = domainMapper.buildDomainResource(args.domain);
-    const data = await cpq.upsertDomain(context, resource);
+    const query = upsertDomainQuery(parent, args, context, info);
+    const data = await cpq.upsertDomain(context, query);
     return data.domainNamedReference;
 }
 
 async function upsertDomains(parent, args, context, info) {
-    const resources = args.domains.map(domain => domainMapper.buildDomainResource(domain));
-    const data = await cpq.upsertDomains(context, { domainList: resources });
+    const query = upsertDomainsQuery(parent, args, context, info);
+    const data = await cpq.upsertDomains(context, query);
     return data.domainNamedReferenceList;
+}
+
+function upsertDomainQuery(parent, args, context, info) {
+    const resource = domainMapper.buildDomainResource(args.domain);
+    return resource;
+}
+
+function upsertDomainsQuery(parent, args, context, info) {
+    const contentType = args.contentType || 'JSON';
+    const resources = args.domains.map(domain => contentType === 'JSON' ? domainMapper.buildDomainResource(domain) : domainMapper.buildDomainResourceXML(domain));
+    return { domainList: resources.map(r => r.domain || r) };
 }
 
 

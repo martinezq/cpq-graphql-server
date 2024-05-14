@@ -46,12 +46,24 @@ function parseAssemblyResource(assemblyResource, { attributeResourceList, positi
             } : undefined
         }));
 
+    const virtualVariantRes = assemblyResource.assembly.virtualVariant;
+
+    const virtualVariant = virtualVariantRes ? {
+        ...virtualVariantRes,
+        values: virtualVariantRes.variantValueList?.map(v => ({
+            attribute: v.attributeNamedReference ? { name: v.attributeNamedReference?.name } : undefined,
+            feature: v.featureNamedReference ? { name: v.featureNamedReference?.name } : undefined,
+            value: v.value
+        }))
+    } : undefined;
+
     return {
         id, 
         ...assemblyResource.assembly,
         attributes,
         positions,
-        rules
+        rules,
+        virtualVariant
     };
 }
 
@@ -166,8 +178,22 @@ function buildAssemblyResource(assembly, promoContext, opts) {
 
     const ruleList = buildAssemblyRuleResources(assembly, promoContext, opts);
 
+    const virtualVariant = assembly.virtualVariant ? {
+        ...R.omit(['values'], assembly.virtualVariant),
+        variantValueList: assembly.virtualVariant.values?.map(vv => ({
+            value: vv.value,
+            attributeNamedReference: vv.attribute ? { name: vv.attribute.name } : undefined,
+            featureNamedReference: vv.feature ? { name: vv.feature.name } : undefined
+        }))
+    } : undefined
+
+    const assembly2 = {
+        ...R.omit(['positions', 'attributes', 'variants', 'rules', 'virtualVariant'], assembly),
+        virtualVariant
+    };
+
     const resource = {
-        assembly: R.omit(['positions', 'attributes', 'variants', 'rules'], assembly),
+        assembly: assembly2,
         attributeList,
         positionList,
         variantList: [],

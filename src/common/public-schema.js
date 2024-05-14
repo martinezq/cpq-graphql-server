@@ -21,23 +21,38 @@ const schema = `
     }
 
     scalar Long
+    scalar JSON
 `;
 
 const LongScalar = new GraphQLScalarType({
     name: 'Long',
     description: 'Long integer',
     serialize(value) {
-      return Number(value);
+        return Number(value);
     },
     parseValue(value) {
-      return value;
+        return value;
     },
     parseLiteral(ast) {
         if (ast.kind === Kind.INT) {
             return Number(ast.value, 10);
         }
     },
-  });
+});
+
+const JSONScalar = new GraphQLScalarType({
+    name: 'JSON',
+    description: 'JSON',
+    serialize(value) {
+        return value;
+    },
+    parseValue(value) {
+        return value;
+    },
+    parseLiteral(ast) {
+        return null;
+    },
+});
 
 const resolvers = {
     Query: {
