@@ -9,6 +9,9 @@
   <meta name="generator" content="Hugo 0.84.0">
   <title>Tacton CPQ - GraphQL API</title>
 
+  <script
+    src="https://embeddable-sandbox.cdn.apollographql.com/_latest/embeddable-sandbox.umd.production.min.js"></script>
+
   <!-- Bootstrap core CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
@@ -32,87 +35,166 @@
 
   <!-- Custom styles for this template -->
   <link href="heroes.css" rel="stylesheet">
+
+  <script>
+    
+    function openExplorer() {
+
+      const baseUrl = document.getElementById("baseUrl").value;
+      const baseUrlWithoutHttps = baseUrl.replace(/http(s?)\:\/\//, '');
+      const ticket = document.getElementById("ticket").value;
+      const user = document.getElementById("user").value;
+      const password = document.getElementById("password").value;
+
+      const initialEndpoint = location.origin + "/promo/" + baseUrlWithoutHttps + "/" + ticket;
+      const token = btoa(user + ':' + password);
+
+      localStorage.setItem('baseUrl', baseUrl);
+      localStorage.setItem('ticket', ticket);
+      localStorage.setItem('user', user);
+
+      // alert(initialEndpoint);
+
+      const main = document.getElementById("main");
+      main.parentNode.removeChild(main);
+
+      const embeddedDiv = document.getElementById("embedded-sandbox");
+
+      new window.EmbeddedSandbox({
+        target: '#embedded-sandbox',
+        initialEndpoint: initialEndpoint,
+        handleRequest: (endpointUrl, options) => {
+          return fetch(endpointUrl, {
+            ...options,
+            headers: {
+              ...options.headers,
+              authorization: `Basic ${token}`
+            },
+          })
+        }
+      });
+    }
+  </script>
 </head>
 
 <body>
 
-  <div class="alert alert-danger" role="alert">
-    <center><b>This application is NOT an OFFICIAL Tacton product. Don't use it in customer integrations!</b></center>
-  </div>
+  <div style="width: 100vw; height: 99vh;" id='embedded-sandbox'>
 
-  <main>
+    <main id="main">
 
-    <div class="px-4 py-5 my-5 text-center" id="top">
-      <img class="d-block mx-auto mb-4" src="logo.png" alt="" height="80">
-      <h1 class="display-5 fw-bold">Tacton CPQ - GraphQL API</h1>
-      <div class="col-lg-6 mx-auto">
-        <p class="lead mb-4">Experimental and unofficial GraphQL API wrapper over standard Tacton API.
+      <div class="alert alert-danger" role="alert">
+        <center><b>This application is NOT an OFFICIAL Tacton product. Don't use it in customer integrations!</b>
+        </center>
+      </div>
+
+      <div class="px-4 py-5 my-5 text-center" id="top">
+        <img class="d-block mx-auto mb-4" src="logo.png" alt="" height="80">
+        <h1 class="display-5 fw-bold">Tacton CPQ - GraphQL API</h1>
+        <div class="col-lg-6 mx-auto">
+          <p class="lead mb-4">Experimental and unofficial GraphQL API wrapper over standard Tacton API.
           </p>
-        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-          <a type="button" class="btn btn-primary btn-lg px-4 gap-3" href="#features">Features</a>
-          <a type="button" class="btn btn-primary btn-lg px-4 gap-3" href="#usage">Usage</a>
+          <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+            <a type="button" class="btn btn-primary btn-lg px-4 gap-3" href="#features">Features</a>
+            <a type="button" class="btn btn-primary btn-lg px-4 gap-3" href="#usageExplorer">Usage with Explorer</a>
+            <a type="button" class="btn btn-primary btn-lg px-4 gap-3" href="#usagePostman">Usage with Postman</a>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="b-example-divider"></div>
+      <div class="b-example-divider"></div>
 
-    <div class="px-4 pt-5 my-5 text-center border-bottom" id="features">
-      <h1 class="display-5 fw-bold">Features</h1>
-      <div class="col-lg-6 mx-auto">
-        <p class="lead mb-4 text-start">
+      <div class="px-4 pt-5 my-5 text-center border-bottom" id="features">
+        <h1 class="display-5 fw-bold">Features</h1>
+        <div class="col-lg-6 mx-auto">
+          <p class="lead mb-4 text-start">
             List of current features
-        <p>
+          <p>
           <ul class="list-group text-start">
             <li class="list-group-item">Product Modeling</li>
             <li class="list-group-item">... todo</li>
           </ul>
-          
+
+        </div>
       </div>
-    </div>
 
-    <div class="b-example-divider"></div>
+      <div class="b-example-divider"></div>
 
-    <div class="px-4 pt-5 my-5 text-center border-bottom" id="usage">
-      <h1 class="display-5 fw-bold">Usage</h1>
-      <div class="col-lg-6 mx-auto">
-        <p class="lead mb-4">
-          To play with API wrapper you can use Postman tool. Follow the instructions below to get started. 
-        </p>
+      <div class="px-4 pt-5 my-5 text-center border-bottom" id="usageExplorer">
+        <h1 class="display-5 fw-bold">Usage with Apollo Explorer</h1>
+        <div class="col-lg-6 mx-auto">
+          <p class="lead mb-4">
+            Enter the required parameters to open Apollo Explorer
+          </p>
+
+          <form class="text-start" onsubmit="openExplorer()">
+            <div class="mb-3">
+              <label for="baseUrl" class="form-label">Tacton Administration base URL</label>
+              <input type="input" class="form-control" id="baseUrl">
+            </div>
+            <div class="mb-3">
+              <label for="ticket" class="form-label">Ticket</label>
+              <input type="input" class="form-control" id="ticket" value="T-00000001">
+            </div>
+            <div class="mb-3">
+              <label for="user" class="form-label">User</label>
+              <input type="input" class="form-control" id="user">
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">Password</label>
+              <input type="password" class="form-control" id="password">
+            </div>
+            <button type="submit" class="btn btn-primary">Open Apollo Explorer</button>
+          </form>
+
+        </div>
+      </div>
+
+      <div class="b-example-divider"></div>
+
+      <div class="px-4 pt-5 my-5 text-center border-bottom" id="usagePostman">
+        <h1 class="display-5 fw-bold">Usage with Postman</h1>
+        <div class="col-lg-6 mx-auto">
+          <p class="lead mb-4">
+            To play with API wrapper you can use Postman tool. Follow the instructions below to get started.
+          </p>
 
           <ol class="list-group list-group-numbered position-relative text-start">
             <li class="list-group-item">Open Example Postman Workspace
-              <br/><br/>
+              <br /><br />
               <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mb-5">
-                <a type="button" class="btn btn-warning btn-lg px-4 me-sm-3" target="_blank" href="https://www.postman.com/interstellar-comet-762305/workspace/tacton-cpq-graphql-api">Example Postman Workspace</a>
+                <a type="button" class="btn btn-warning btn-lg px-4 me-sm-3" target="_blank"
+                  href="https://www.postman.com/interstellar-comet-762305/workspace/tacton-cpq-graphql-api">Example
+                  Postman Workspace</a>
               </div>
             </li>
             <li class="list-group-item">Select ... next to the collection name and select "Create a fork"
-              <br/><br/>
+              <br /><br />
               <img class="d-block mx-auto mb-4" src="images/postman_fork.png" alt="" width="640">
             </li>
             <li class="list-group-item">If not done before, sign in to your Postman account or create a new acount
-              <br/><br/>
+              <br /><br />
               <img class="d-block mx-auto mb-4" src="images/postman_account.png" alt="" width="320">
             </li>
             <li class="list-group-item">Select environment "Example Ticket"
-              <br/><br/>
+              <br /><br />
               <img class="d-block mx-auto mb-4" src="images/postman_fork_add_env.png" alt="" width="640">
             </li>
             <li class="list-group-item">Confirm fork
-              <br/><br/>
+              <br /><br />
               <img class="d-block mx-auto mb-4" src="images/postman_fork_button.png" alt="" width="240">
             </li>
             <li class="list-group-item">Update all values, make sure "Current values" are the same as "Initial values"
-              <br/><br/>
+              <br /><br />
               <img class="d-block mx-auto mb-4" src="images/postman_environment.png" alt="" width="640">
             </li>
             <li class="list-group-item">Remember to save the changes
-              <br/><br/>
+              <br /><br />
               <img class="d-block mx-auto mb-4" src="images/postman_environment_save.png" alt="" width="640">
             </li>
-            <li class="list-group-item">Select collections, find the request, select environment, check the query and "Send"
-              <br/><br/>
+            <li class="list-group-item">Select collections, find the request, select environment, check the query and
+              "Send"
+              <br /><br />
               <img class="d-block mx-auto mb-4" src="images/postman_request.png" alt="" width="640">
             </li>
             <li class="list-group-item">Copy the request and play with other queries
@@ -120,15 +202,21 @@
           </ol>
 
 
+        </div>
       </div>
-    </div>
 
-    <div class="b-example-divider mb-0"></div>
-  </main>
+      <div class="b-example-divider mb-0"></div>
+    </main>
 
 
-  <script src="../assets/dist/js/bootstrap.bundle.min.js"></script>
+  </div>
 
+  <script>
+    document.getElementById("baseUrl").value = localStorage.getItem('baseUrl');
+    document.getElementById("ticket").value = localStorage.getItem('ticket');
+    document.getElementById("user").value = localStorage.getItem('user');
+
+  </script>
 
 </body>
 
