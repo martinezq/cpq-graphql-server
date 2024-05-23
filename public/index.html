@@ -63,6 +63,52 @@
       new window.EmbeddedSandbox({
         target: '#embedded-sandbox',
         initialEndpoint: initialEndpoint,
+        initialState: {
+          document: `
+          query ExampleQuery {
+            listAssemblies {
+              name
+              attributes {
+                name
+                domain {
+                  name
+                }
+                io
+                aggregationStrategy
+                aggregateList {
+                  attribute {
+                    name
+                  }
+                  position {
+                    name
+                  }
+                  feature {
+                    name
+                  }
+                }
+              }
+              positions {
+                name
+                module {
+                  name
+                }
+                qtyMin
+                qtyMax
+                qtyType
+              }
+              rules {
+                constraint
+                combination {
+                  columns
+                  rows {
+                    values
+                  }
+                }
+              }
+            }
+          }
+          `
+        },
         handleRequest: (endpointUrl, options) => {
           return fetch(endpointUrl, {
             ...options,
