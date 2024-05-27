@@ -115,6 +115,10 @@ async function listModules(context) {
     return listObjects(context, 'module');
 }
 
+async function listGlobalFeatures(context) {
+    return listObjects(context, 'global-feature');
+}
+
 async function deleteDomain(context, id) {
     return deleteObject(context, 'domain', id);
 }
@@ -141,6 +145,14 @@ async function upsertModule(context, obj) {
 
 async function upsertModules(context, obj) {
     return upsertObjects(context, 'module', obj);
+}
+
+async function upsertGlobalFeature(context, obj) {
+    return upsertObject(context, 'global-feature', obj);
+}
+
+async function upsertGlobalFeatures(context, obj) {
+    return upsertObjects(context, 'global-feature', obj);
 }
 
 async function upsertAssembly(context, obj) {
@@ -201,6 +213,7 @@ module.exports = {
     listDomains,
     listAssemblies,
     listModules,
+    listGlobalFeatures,
     deleteDomain,
     deleteAssembly,
     deleteModule,
@@ -209,5 +222,7 @@ module.exports = {
     upsertAssembly,
     upsertDomains,
     upsertModules,
+    upsertGlobalFeature,
+    upsertGlobalFeatures,
     upsertAssemblies
 };

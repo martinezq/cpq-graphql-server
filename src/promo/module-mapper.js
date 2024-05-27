@@ -8,10 +8,7 @@ function parseModuleResource(moduleResource, { featureResourceList, variantResou
     const features = 
         featureResourceList
         .filter(featureResource => featureResource.feature.parentModuleNamedReference.id === id)
-        .map(featureResource => ({
-            id: featureResource.featureReference.id,
-            ...featureResource.feature
-        }));
+        .map(parseFeatureResource);
 
     const variants = 
         variantResourceList
@@ -42,6 +39,15 @@ function parseModuleResource(moduleResource, { featureResourceList, variantResou
 
 // ----------------------------------------------------------------------------
 
+function parseFeatureResource(featureResource) {
+    return {
+        id: featureResource.featureReference.id,
+        ...featureResource.feature
+    };
+}
+
+// ----------------------------------------------------------------------------
+
 function buildModuleResource(module, promoContext) {
     const resource = {
         module: R.omit(['features', 'variants'], module),
@@ -66,7 +72,20 @@ function buildModuleResource(module, promoContext) {
 
 // ----------------------------------------------------------------------------
 
+function buildGlobalFeatureResource(feature, promoContext) {
+    return {
+        feature: {
+            ...feature,
+            domainNamedReference: feature.domain || { name: 'String' }
+        }
+    };
+}
+
+// ----------------------------------------------------------------------------
+
 module.exports = {
     parseModuleResource,
-    buildModuleResource
+    parseFeatureResource,
+    buildModuleResource,
+    buildGlobalFeatureResource
 };

@@ -404,6 +404,7 @@ async function generateSchema() {
             listDomains: [Domain]
             listAssemblies: [Assembly]
             listModules: [Module]
+            listGlobalFeatures: [Feature]
 
             upsertDomainQuery(domain: DomainInput!, contentType: ContentType!): JSON
             upsertDomainsQuery(domains: [DomainInput]!, contentType: ContentType!): JSON
@@ -424,6 +425,9 @@ async function generateSchema() {
             upsertAssemblies(assemblies: [AssemblyInput]!): [Assembly]
             deleteAssembly(id: ID!): Boolean
             
+            upsertGlobalFeature(feature: FeatureInput): Feature
+            upsertGlobalFeatures(features: [FeatureInput]): [Feature]
+
             # deltaUpsertDomain(domain: DomainDeltaInput!): Domain
             # deltaUpsertModule(module: ModuleInput!): Module
         }

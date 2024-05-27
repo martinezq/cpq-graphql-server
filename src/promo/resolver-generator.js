@@ -16,6 +16,7 @@ async function generateResolvers() {
         listDomains,
         listAssemblies,
         listModules,
+        listGlobalFeatures,
         // upsertDomainQuery,
         // upsertDomainsQuery
     };
@@ -30,7 +31,9 @@ async function generateResolvers() {
         upsertModule,
         upsertModules,
         upsertAssembly,
-        upsertAssemblies
+        upsertAssemblies,
+        upsertGlobalFeature,
+        upsertGlobalFeatures
         // deltaUpsertDomain
     };
 
@@ -80,6 +83,12 @@ async function listModules(parent, args, context, info) {
     const data = await cpq.listModules(context);
 
     return data.moduleResourceList.map(moduleResource => moduleMapper.parseModuleResource(moduleResource, data));
+}
+
+async function listGlobalFeatures(parent, args, context, info) {
+    const data = await cpq.listGlobalFeatures(context);
+
+    return data.featureResourceList.map(featureResource => moduleMapper.parseFeatureResource(featureResource, data));
 }
 
 async function deleteDomain(parent, args, context, info) {
@@ -166,6 +175,25 @@ async function upsertModules(parent, args, context, info) {
     const data = await cpq.upsertModules(context, lists);
     
     return data.moduleNamedReferenceList;
+}
+
+async function upsertGlobalFeature(parent, args, context, info) {
+    const resource = moduleMapper.buildGlobalFeatureResource(args.feature);
+
+    const data = await cpq.upsertGlobalFeature(context, resource);
+    const id = data.featureNamedReference.id;
+    
+    return { id };
+}
+
+async function upsertGlobalFeatures(parent, args, context, info) {
+    const resources = args.features.map(feature => moduleMapper.buildGlobalFeatureResource(feature));
+
+    const featureList = R.flatten(resources.map(r => r.feature));
+
+    const data = await cpq.upsertGlobalFeatures(context, { featureList });
+    
+    return data.featureNamedReferenceList;
 }
 
 async function upsertAssembly(parent, args, context, info) {
