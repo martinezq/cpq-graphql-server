@@ -167,7 +167,14 @@ async function upsertModule(parent, args, context, info) {
 }
 
 async function upsertModules(parent, args, context, info) {
-    const resources = args.modules.map(module => moduleMapper.buildModuleResource(module));
+    const existingData = await cpq.listModules(context);
+    const existingModules = existingData.moduleResourceList.map(r => moduleMapper.parseModuleResource(r, existingData));
+
+    const deltaModules = args.modules;
+    const mergedModules = deltaModules.map(deltaModule => moduleMapper.mergeModule(existingModules.find(m => m.name === deltaModule.name), deltaModule));
+    const resources = mergedModules.map(mergedModule => moduleMapper.buildModuleResource(mergedModule));
+
+    // const resources = args.modules.map(module => moduleMapper.buildModuleResource(module));
 
     const lists = {
         moduleList: resources.map(r => r.module),
