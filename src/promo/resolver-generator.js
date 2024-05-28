@@ -155,12 +155,15 @@ function upsertDomainsQuery(parent, args, context, info) {
 
 
 async function upsertModule(parent, args, context, info) {
-    const resource = moduleMapper.buildModuleResource(args.module);
+    const existingData = await cpq.getModuleByName(context, args.module.name);
+    const existingModule = moduleMapper.parseModuleResource(existingData.moduleResource, existingData)
+
+    const mergedModule = moduleMapper.mergeModule(existingModule, args.module);
+    const resource = moduleMapper.buildModuleResource(mergedModule);
 
     const data = await cpq.upsertModule(context, resource);
-    const id = data.moduleNamedReference.id;
     
-    return { id };
+    return data.moduleNamedReference;
 }
 
 async function upsertModules(parent, args, context, info) {

@@ -103,6 +103,14 @@ async function getDomainByName(context, name) {
     return getObjectByName(context, 'domain', name);
 }
 
+async function getModule(context, id) {
+    return getObjectById(context, 'module', id);
+}
+
+async function getModuleByName(context, name) {
+    return getObjectByName(context, 'module', name);
+}
+
 async function listDomains(context) {
     return listObjects(context, 'domain');
 }
@@ -210,6 +218,8 @@ module.exports = {
     getDomain,
     getAssembly,
     getDomainByName,    
+    getModule,
+    getModuleByName,
     listDomains,
     listAssemblies,
     listModules,
