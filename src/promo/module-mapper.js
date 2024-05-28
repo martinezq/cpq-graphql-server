@@ -101,7 +101,7 @@ function mergeModule(existingModule, deltaModule) {
 function mergeModuleFeatures(existingModule, deltaModule) {
     let features = R.clone(existingModule.features);
 
-    deltaModule.features.forEach(deltaFeature => {
+    deltaModule.features?.forEach(deltaFeature => {
         const existingFeatureIndex = features.findIndex(f => f.name === deltaFeature.name);
     
         if (existingFeatureIndex > -1) {
@@ -126,7 +126,7 @@ function mergeModuleVariants(existingModule, deltaModule) {
     function mergeVariant(existingVariant, deltaVariant) {
         let values = existingVariant.values;
 
-        deltaVariant.values.forEach(deltaValue => {
+        deltaVariant.values?.forEach(deltaValue => {
             const existingValueIndex = values.findIndex(vv => vv.feature.name === deltaValue.feature?.name)
 
             if (existingValueIndex > -1) {
@@ -150,7 +150,7 @@ function mergeModuleVariants(existingModule, deltaModule) {
     
     let variants = R.clone(existingModule.variants);
 
-    deltaModule.variants.forEach(deltaVariant => {
+    deltaModule.variants?.forEach(deltaVariant => {
         const existingVariantIndex = variants.findIndex(v => v.name === deltaVariant.name);
     
         if (existingVariantIndex > -1) {
