@@ -18,7 +18,10 @@ function parseModuleResource(moduleResource, { featureResourceList, variantResou
                 variantResource.variant.variantValueList
                 .map(variantValue => ({
                     ... variantValue,
-                    feature: variantValue.featureNamedReference
+                    feature: {
+                        ...variantValue.featureNamedReference,
+                        domain: featureResourceList.find(f => f.featureReference.id === variantValue.featureNamedReference.id)?.feature?.domainNamedReference // TODO very slow (full scan), fix me
+                    }
                 }));
             
              return {
@@ -142,11 +145,10 @@ function mergeModuleVariants(existingModule, deltaModule, deltaUpdate = false) {
                 values[deltaValue.feature.name] = { 
                     ...existingValue, 
                     ...deltaValue,
-                    feature: {
-                        ...existingValue.feature,
-                        ...deltaValue.feature,
-                        id: (existingValue.feature.name === deltaValue.feature.name) ? existingValue.feature.id : undefined
-                    }
+                    // feature: {
+                    //     ...existingValue.feature,
+                    //     ...deltaValue.feature
+                    // }
                 };
             } else {
                 values[deltaValue.feature.name] = deltaValue;
