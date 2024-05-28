@@ -398,6 +398,11 @@ async function generateSchema() {
             variants: [ModuleVariantInput]      
         }          
 
+
+        input UpsertOptions {
+            deltaUpdate: Boolean
+        }
+
         #######################################################################
 
         type Query {
@@ -417,8 +422,8 @@ async function generateSchema() {
             upsertDomains(domains: [DomainInput]!): [Domain]
             deleteDomain(id: ID!): Boolean
             
-            upsertModule(module: ModuleInput!): Module
-            upsertModules(modules: [ModuleInput]!): [Module]
+            upsertModule(module: ModuleInput!, opts: UpsertOptions): Module
+            upsertModules(modules: [ModuleInput]!, opts: UpsertOptions): [Module]
             deleteModule(id: ID!): Boolean
             
             upsertAssembly(assembly: AssemblyInput!): Assembly

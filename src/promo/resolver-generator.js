@@ -155,10 +155,12 @@ function upsertDomainsQuery(parent, args, context, info) {
 
 
 async function upsertModule(parent, args, context, info) {
+    const deltaUpdate = args.opts?.deltaUpdate || false;
+
     const existingData = await cpq.getModuleByName(context, args.module.name);
     const existingModule = moduleMapper.parseModuleResource(existingData.moduleResource, existingData)
 
-    const mergedModule = moduleMapper.mergeModule(existingModule, args.module);
+    const mergedModule = moduleMapper.mergeModule(existingModule, args.module, deltaUpdate);
     const resource = moduleMapper.buildModuleResource(mergedModule);
 
     const data = await cpq.upsertModule(context, resource);
@@ -167,11 +169,13 @@ async function upsertModule(parent, args, context, info) {
 }
 
 async function upsertModules(parent, args, context, info) {
+    const deltaUpdate = args.opts?.deltaUpdate || false;
+
     const existingData = await cpq.listModules(context);
     const existingModules = existingData.moduleResourceList.map(r => moduleMapper.parseModuleResource(r, existingData));
 
     const deltaModules = args.modules;
-    const mergedModules = deltaModules.map(deltaModule => moduleMapper.mergeModule(existingModules.find(m => m.name === deltaModule.name), deltaModule));
+    const mergedModules = deltaModules.map(deltaModule => moduleMapper.mergeModule(existingModules.find(m => m.name === deltaModule.name), deltaModule, deltaUpdate));
     const resources = mergedModules.map(mergedModule => moduleMapper.buildModuleResource(mergedModule));
 
     // const resources = args.modules.map(module => moduleMapper.buildModuleResource(module));

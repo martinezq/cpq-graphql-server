@@ -54,15 +54,15 @@ function buildModuleResource(module, promoContext) {
         module: R.omit(['features', 'variants'], module),
         featureList: (module.features || []).map(f => ({
             ...f,
-            parentModuleNamedReference: { name: module.name },
+            parentModuleNamedReference: module,
             domainNamedReference: f.domain || { name: 'String' }
         })),
         variantList: (module.variants || []).map(v => ({
             ...v,
             status: v.status || 'Active',
-            parentModuleNamedReference: { name: module.name },
+            parentModuleNamedReference: module,
             variantValueList: (v.values || []).map(vv => ({
-                featureNamedReference: { name: vv.feature.name },
+                featureNamedReference: vv.feature,
                 value: vv.value
             }))
         }))
@@ -84,9 +84,9 @@ function buildGlobalFeatureResource(feature, promoContext) {
 
 // ----------------------------------------------------------------------------
 
-function mergeModule(existingModule, deltaModule) {
-    const features = mergeModuleFeatures(existingModule, deltaModule);
-    const variants = mergeModuleVariants(existingModule, deltaModule);
+function mergeModule(existingModule, deltaModule, deltaUpdate = false) {
+    const features = mergeModuleFeatures(existingModule, deltaModule, deltaUpdate);
+    const variants = mergeModuleVariants(existingModule, deltaModule, deltaUpdate);
 
     return {
         ...existingModule,
@@ -98,71 +98,85 @@ function mergeModule(existingModule, deltaModule) {
 
 // ----------------------------------------------------------------------------
 
-function mergeModuleFeatures(existingModule, deltaModule) {
-    let features = R.clone(existingModule.features);
+const mapByName = (list) => R.mapObjIndexed((v, k) => v[0], R.groupBy(R.prop('name'), list));
+
+// ----------------------------------------------------------------------------
+
+function mergeModuleFeatures(existingModule, deltaModule, deltaUpdate = false) {
+    let existingFeaturesByName = mapByName(existingModule.features);
+    
+    let features = {
+        ...(deltaUpdate ? existingFeaturesByName : {})
+    };
 
     deltaModule.features?.forEach(deltaFeature => {
-        const existingFeatureIndex = features.findIndex(f => f.name === deltaFeature.name);
-    
-        if (existingFeatureIndex > -1) {
-            const existingFeature = features[existingFeatureIndex];
-            const mergedFeature = {
-                ...existingFeature,
-                ...deltaFeature
-            };
-            features[existingFeatureIndex] = mergedFeature;
+        const existingFeature = existingFeaturesByName[deltaFeature.name];
+        
+        if (existingFeature) {
+            features[deltaFeature.name] = { ...existingFeature, ...deltaFeature };
         } else {
-            features.push(deltaFeature);
+            features[deltaFeature.name] = deltaFeature;
         }
     });
 
-    return features;
+    return R.values(features);
 }
 
 // ----------------------------------------------------------------------------
 
-function mergeModuleVariants(existingModule, deltaModule) {
+function mergeModuleVariants(existingModule, deltaModule, deltaUpdate = false) {
     
-    function mergeVariant(existingVariant, deltaVariant) {
-        let values = existingVariant.values;
+    const mapByFeatureName = (list) => R.mapObjIndexed((v, k) => v[0], R.groupBy(x => x.feature.name, list));
+
+    function mergeVariant(existingVariant, deltaVariant, deltaUpdate = false) {
+        let existingValuesByFeatureName = mapByFeatureName(existingVariant.values);
+        
+        let values = {
+            ...(deltaUpdate ? existingValuesByFeatureName : {})
+        };
 
         deltaVariant.values?.forEach(deltaValue => {
-            const existingValueIndex = values.findIndex(vv => vv.feature.name === deltaValue.feature?.name)
+            const existingValue = existingValuesByFeatureName[deltaValue.feature.name];
 
-            if (existingValueIndex > -1) {
-                const existingValue = values[existingValueIndex];
-                const mergedValue = {
-                    ...existingValue,
-                    ...deltaValue
-                }
-                values[existingValueIndex] = mergedValue;
+            if (existingValue) {
+                values[deltaValue.feature.name] = { 
+                    ...existingValue, 
+                    ...deltaValue,
+                    feature: {
+                        ...existingValue.feature,
+                        ...deltaValue.feature,
+                        id: (existingValue.feature.name === deltaValue.feature.name) ? existingValue.feature.id : undefined
+                    }
+                };
             } else {
-                values.push(deltaValue);
+                values[deltaValue.feature.name] = deltaValue;
             }
         });
 
         return {
             ...existingVariant,
             ...deltaVariant,
-            values
+            values: R.values(values)
         };
     }
     
-    let variants = R.clone(existingModule.variants);
+    let existingVariantsByName = mapByName(existingModule.variants);
+    
+    let variants = {
+        ...(deltaUpdate ? existingVariantsByName : {})
+    };
 
     deltaModule.variants?.forEach(deltaVariant => {
-        const existingVariantIndex = variants.findIndex(v => v.name === deltaVariant.name);
+        const existingVariant = existingVariantsByName[deltaVariant.name];
     
-        if (existingVariantIndex > -1) {
-            const existingVariant = variants[existingVariantIndex];
-            const mergedVariant = mergeVariant(existingVariant, deltaVariant);
-            variants[existingVariantIndex] = mergedVariant;
+        if (existingVariant) {
+            variants[deltaVariant.name] = mergeVariant(existingVariant, deltaVariant, deltaUpdate);
         } else {
-            variants.push(deltaVariant);
+            variants[deltaVariant.name] = deltaVariant;
         }
     });
 
-    return variants;
+    return R.values(variants);
 }
 // ----------------------------------------------------------------------------
 
