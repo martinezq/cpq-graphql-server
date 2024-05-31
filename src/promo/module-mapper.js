@@ -106,7 +106,7 @@ const mapByName = (list) => R.mapObjIndexed((v, k) => v[0], R.groupBy(R.prop('na
 // ----------------------------------------------------------------------------
 
 function mergeModuleFeatures(existingModule, deltaModule, deltaUpdate = false) {
-    let existingFeaturesByName = mapByName(existingModule.features);
+    let existingFeaturesByName = existingModule ? mapByName(existingModule.features) : {};
     
     let features = {
         ...(deltaUpdate ? existingFeaturesByName : {})
@@ -162,7 +162,7 @@ function mergeModuleVariants(existingModule, deltaModule, deltaUpdate = false) {
         };
     }
     
-    let existingVariantsByName = mapByName(existingModule.variants);
+    let existingVariantsByName = existingModule ? mapByName(existingModule.variants) : {};
     
     let variants = {
         ...(deltaUpdate ? existingVariantsByName : {})
