@@ -16,6 +16,13 @@ async function generateSchema() {
             Float
         }
 
+        enum DomainValueType {
+            Integer
+            Float
+            Fixed
+        }
+
+
         enum Status {
             Active
         }      
@@ -72,6 +79,7 @@ async function generateSchema() {
 
         type EnumElement {
             name: String
+            value: String
             description: String
             descriptionTranslations: LocalizedString
             longDescription: String
@@ -80,6 +88,7 @@ async function generateSchema() {
 
         input EnumElementInput {
             name: String!
+            value: String
             description: String
             descriptionTranslations: LocalizedStringInput
             longDescription: String
@@ -119,6 +128,8 @@ async function generateSchema() {
             floatRange: DomainTypeRange
             integerRange: DomainTypeRange
             enumElementList: [EnumElement]
+            valueType: DomainValueType
+            decimals: Int
         }
 
         input DomainInput {
@@ -130,7 +141,9 @@ async function generateSchema() {
             booleanNo: DomainBooleanValueInput
             floatRange: DomainTypeRangeInput
             integerRange: DomainTypeRangeInput
-            enumElementList: [EnumElementInput]            
+            enumElementList: [EnumElementInput]    
+            valueType: DomainValueType
+            decimals: Int
         }
 
         input DomainDeltaInput {
