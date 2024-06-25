@@ -17,6 +17,7 @@ async function generateResolvers() {
         listAssemblies,
         listModules,
         listGlobalFeatures,
+        listAttributeCategories,
         // upsertDomainQuery,
         // upsertDomainsQuery
     };
@@ -33,7 +34,9 @@ async function generateResolvers() {
         upsertAssembly,
         upsertAssemblies,
         upsertGlobalFeature,
-        upsertGlobalFeatures
+        upsertGlobalFeatures,
+        upsertAttributeCategory,
+        upsertAttributeCategories,
         // deltaUpsertDomain
     };
 
@@ -90,6 +93,13 @@ async function listGlobalFeatures(parent, args, context, info) {
 
     return data.featureResourceList.map(featureResource => moduleMapper.parseFeatureResource(featureResource, data));
 }
+
+async function listAttributeCategories(parent, args, context, info) {
+    const data = await cpq.listAttributeCategories(context);
+
+    return data.attributeCategoryResourceList.map(c => c.attributeCategory);
+}
+
 
 async function deleteDomain(parent, args, context, info) {
     await cpq.deleteDomain(context, args.id);
@@ -209,6 +219,25 @@ async function upsertGlobalFeatures(parent, args, context, info) {
     
     return data.featureNamedReferenceList;
 }
+
+async function upsertAttributeCategory(parent, args, context, info) {
+    const resource = {
+        attributeCategory: args.category
+    };
+
+    const data = await cpq.upsertAttributeCategory(context, resource);
+    return data.attributeCategoryNamedReference;
+   
+}
+
+async function upsertAttributeCategories(parent, args, context, info) {
+    const attributeCategoryList = args.categories
+
+    const data = await cpq.upsertAttributeCategories(context, { attributeCategoryList });
+    
+    return data.attributeCategoryNamedReferenceList;
+}
+
 
 async function upsertAssembly(parent, args, context, info) {
     const modules = await listModules(parent, args, context, info);

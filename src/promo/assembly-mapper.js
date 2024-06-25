@@ -96,8 +96,8 @@ function processCombinationColumns(combination, assembly, promoContext) {
             const positionName = columnString.split('.')[0];
             const featureOrSubAttributeName = columnString.split('.')[1];
             
-            // const isQty = featureOrSubAttributeName === 'Qty';
-            const isQty = false; // Tacton bug: not supported in API!
+            const isQty = featureOrSubAttributeName === 'Qty';
+            // const isQty = false; // Tacton bug: not supported in API!
 
             const refModuleName = positions.find(p => p.name === positionName)?.module?.name;
             const refAssemblyName = positions.find(p => p.name === positionName)?.assembly?.name;
@@ -220,7 +220,7 @@ function mergeAssembly(existingAssembly, deltaAssembly) {
                 ...existingRule,
                 combination: Boolean(existingRule.combination) ? {
                     ...existingRule.combination,
-                    rows: deltaRule.combination?.rows
+                    rows: deltaRule?.combination?.rows
                 } : undefined
             };
         })

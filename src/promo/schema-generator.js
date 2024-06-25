@@ -159,13 +159,15 @@ async function generateSchema() {
 
 
         type AssemblyAttributeCategory {
-            id: ID
+            # id: ID
             name: String
+            description: String
         }
 
         input AssemblyAttributeCategoryInput {
-            id: ID
+            # id: ID
             name: String
+            description: String
         }        
 
 
@@ -423,6 +425,7 @@ async function generateSchema() {
             listAssemblies: [Assembly]
             listModules: [Module]
             listGlobalFeatures: [Feature]
+            listAttributeCategories: [AssemblyAttributeCategory]
 
             upsertDomainQuery(domain: DomainInput!, contentType: ContentType!): JSON
             upsertDomainsQuery(domains: [DomainInput]!, contentType: ContentType!): JSON
@@ -443,8 +446,11 @@ async function generateSchema() {
             upsertAssemblies(assemblies: [AssemblyInput]!): [Assembly]
             deleteAssembly(id: ID!): Boolean
             
-            upsertGlobalFeature(feature: FeatureInput): Feature
-            upsertGlobalFeatures(features: [FeatureInput]): [Feature]
+            upsertGlobalFeature(feature: FeatureInput!): Feature
+            upsertGlobalFeatures(features: [FeatureInput]!): [Feature]
+
+            upsertAttributeCategory(category: AssemblyAttributeCategoryInput!): AssemblyAttributeCategory
+            upsertAttributeCategories(categories: [AssemblyAttributeCategoryInput]!): [AssemblyAttributeCategory]
 
             # deltaUpsertDomain(domain: DomainDeltaInput!): Domain
             # deltaUpsertModule(module: ModuleInput!): Module
