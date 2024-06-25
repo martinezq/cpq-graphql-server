@@ -156,7 +156,7 @@ function buildAssemblyRuleResources(assembly, promoContext, opts) {
 function buildAssemblyResource(assembly, promoContext, opts) {
 
     const attributeList = (assembly.attributes || []).map(attribute => ({
-        ...R.omit(['parentAssemblyNamedReference', 'attributeCategoryNamedReference', 'domainNamedReference', 'aggregateList'], attribute),
+        ...R.omit(['parentAssemblyNamedReference', 'attributeCategoryNamedReference', 'domainNamedReference', 'aggregateList', 'category'], attribute),
         defaultView: attribute.defaultView !== undefined ? attribute.defaultView : true,
         parentAssemblyNamedReference: { name: assembly.name },
         domainNamedReference: attribute.domain,
@@ -164,7 +164,8 @@ function buildAssemblyResource(assembly, promoContext, opts) {
             attributeNamedReference: aggregate.attribute,
             featureNamedReference: aggregate.feature,
             positionNamedReference: aggregate.position
-        }))
+        })),
+        attributeCategoryNamedReference: attribute.category
     }));
 
     const positionList = (assembly.positions || []).map(position => ({
