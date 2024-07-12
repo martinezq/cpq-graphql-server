@@ -56,12 +56,12 @@ function buildModuleResource(module, promoContext) {
     const resource = {
         module: R.omit(['features', 'variants'], module),
         featureList: (module.features || []).map(f => ({
-            ...f,
+            ...R.omit(['domain'], f),
             parentModuleNamedReference: module,
             domainNamedReference: f.domain || { name: 'String' }
         })),
         variantList: (module.variants || []).map(v => ({
-            ...v,
+            ...R.omit(['values'], v),
             status: v.status || 'Active',
             parentModuleNamedReference: module,
             variantValueList: (v.values || []).map(vv => ({

@@ -1,5 +1,6 @@
 const Axios = require('axios');
 const R = require('ramda');
+const { JsonStreamStringify } = require('json-stream-stringify');
 
 const { GraphQLError } = require('graphql');
 
@@ -68,8 +69,13 @@ async function upsertObject(context, objectType, obj) {
 
     console.log('POST', url);
 
+    const jsonStream = new JsonStreamStringify(obj);
+
     const resp = await handleErrors(
-        () => axios.post(url, obj, { headers: { Authorization: headers?.authorization } })
+        () => axios.post(url, jsonStream, { 
+            maxRedirects: 0, 
+            headers: { Authorization: headers?.authorization } 
+        })
     );
 
     return resp.data;
@@ -81,8 +87,13 @@ async function upsertObjects(context, objectType, obj) {
 
     console.log('POST', url);
 
+    const jsonStream = new JsonStreamStringify(obj);
+
     const resp = await handleErrors(
-        () => axios.post(url, obj, { headers: { Authorization: headers?.authorization } })
+        () => axios.post(url, jsonStream, {
+            maxRedirects: 0, 
+            headers: { Authorization: headers?.authorization, 'Content-Type': 'application/json'} 
+        })
     );
 
     return resp.data;

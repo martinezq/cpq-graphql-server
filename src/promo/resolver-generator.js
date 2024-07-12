@@ -179,14 +179,23 @@ async function upsertModule(parent, args, context, info) {
 }
 
 async function upsertModules(parent, args, context, info) {
-    const deltaUpdate = args.opts?.deltaUpdate || false;
+    let deltaUpdate = args.opts?.deltaUpdate || false;
 
-    const existingData = await cpq.listModules(context);
-    const existingModules = existingData.moduleResourceList.map(r => moduleMapper.parseModuleResource(r, existingData));
+    let existingData = await cpq.listModules(context);
+    let existingModules = existingData.moduleResourceList.map(r => moduleMapper.parseModuleResource(r, existingData));
 
-    const deltaModules = args.modules;
-    const mergedModules = deltaModules.map(deltaModule => moduleMapper.mergeModule(existingModules.find(m => m.name === deltaModule.name), deltaModule, deltaUpdate));
-    const resources = mergedModules.map(mergedModule => moduleMapper.buildModuleResource(mergedModule));
+    let deltaModules = args.modules;
+
+    // let existingModules = [];
+
+    // for (const deltaModule of deltaModules) {
+    //     const existingModuleResource = await cpq.getModuleByName(context, deltaModule.name);
+    //     const existingModule = moduleMapper.parseModuleResource(existingModuleResource.moduleResource, existingModuleResource);
+    //     existingModules.push(existingModule);
+    // }
+
+    let mergedModules = deltaModules.map(deltaModule => moduleMapper.mergeModule(existingModules.find(m => m.name === deltaModule.name), deltaModule, deltaUpdate));
+    let resources = mergedModules.map(mergedModule => moduleMapper.buildModuleResource(mergedModule));
 
     // const resources = args.modules.map(module => moduleMapper.buildModuleResource(module));
 
@@ -195,6 +204,13 @@ async function upsertModules(parent, args, context, info) {
         featureList: R.flatten(resources.map(r => r.featureList)),
         variantList: R.flatten(resources.map(r => r.variantList))
     };
+
+    // release the memory
+    existingData = null;
+    deltaModules = null;
+    existingModules = null;
+    mergedModules = null; 
+    resources = null;
 
     const data = await cpq.upsertModules(context, lists);
     
