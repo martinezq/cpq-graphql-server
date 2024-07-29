@@ -50,6 +50,10 @@ async function generateSchemaAndResolvers() {
 
 async function registerApolloServer(server, path) {
     await server.start();
+
+    const serverData = {
+        jobs: {}
+    };
     
     const router = express.Router();
 
@@ -64,7 +68,8 @@ async function registerApolloServer(server, path) {
                     ticket: path.split('/')[2],
                     headers: {
                         authorization: req.headers.authorization
-                    }
+                    },
+                    serverData
                 };
             }
         })

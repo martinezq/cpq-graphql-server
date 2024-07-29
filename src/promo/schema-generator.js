@@ -53,7 +53,19 @@ async function generateSchema() {
             XML
         }
 
+        enum JobStatus {
+            InProgress
+            Completed
+            Error
+        }
+
         #######################################################################
+
+        type Job {
+            id: ID
+            status: JobStatus!
+            error: String
+        }
 
         type Ref {
             id: ID
@@ -429,6 +441,8 @@ async function generateSchema() {
 
             upsertDomainQuery(domain: DomainInput!, contentType: ContentType!): JSON
             upsertDomainsQuery(domains: [DomainInput]!, contentType: ContentType!): JSON
+
+            job(id: ID!): Job
         }
 
         #######################################################################
@@ -440,6 +454,7 @@ async function generateSchema() {
             
             upsertModule(module: ModuleInput!, opts: UpsertOptions): Module
             upsertModules(modules: [ModuleInput]!, opts: UpsertOptions): [Module]
+            upsertModulesAsync(modules: [ModuleInput]!, opts: UpsertOptions): ID
             deleteModule(id: ID!): Boolean
             
             upsertAssembly(assembly: AssemblyInput!): Assembly

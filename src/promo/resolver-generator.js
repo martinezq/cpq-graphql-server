@@ -1,5 +1,6 @@
 const R = require('ramda');
 const parser = require('xml2json');
+const { v4: uuidv4 } = require('uuid');
 
 const cpq = require('./cpq-client');
 const public = require('../common/public-schema');
@@ -20,6 +21,7 @@ async function generateResolvers() {
         listAttributeCategories,
         // upsertDomainQuery,
         // upsertDomainsQuery
+        job
     };
 
     let Mutation = {
@@ -31,6 +33,7 @@ async function generateResolvers() {
         upsertDomains,
         upsertModule,
         upsertModules,
+        upsertModulesAsync,
         upsertAssembly,
         upsertAssemblies,
         upsertGlobalFeature,
@@ -98,6 +101,10 @@ async function listAttributeCategories(parent, args, context, info) {
     const data = await cpq.listAttributeCategories(context);
 
     return data.attributeCategoryResourceList.map(c => c.attributeCategory);
+}
+
+async function job(parent, args, context, info) {
+    return context.serverData.jobs[args.id];
 }
 
 
@@ -215,6 +222,26 @@ async function upsertModules(parent, args, context, info) {
     const data = await cpq.upsertModules(context, lists);
     
     return data.moduleNamedReferenceList;
+}
+
+async function upsertModulesAsync(parent, args, context, info) {
+    const jobId = uuidv4();
+
+    context.serverData.jobs[jobId] = {
+        id: jobId,
+        status: 'InProgress'
+    };
+
+    upsertModules(parent, args, context, info)
+        .then(result => {
+            context.serverData.jobs[jobId].status = "Completed";
+        })
+        .catch(error => {
+            context.serverData.jobs[jobId].status = "Error";
+            context.serverData.jobs[jobId].error = error;
+        });
+
+    return jobId;
 }
 
 async function upsertGlobalFeature(parent, args, context, info) {
