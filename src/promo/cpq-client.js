@@ -110,6 +110,10 @@ async function getAssembly(context, id) {
     return getObjectById(context, 'assembly', id);
 }
 
+async function getAssemblyByName(context, name) {
+    return getObjectByName(context, 'assembly', name);
+}
+
 async function getDomainByName(context, name) {
     return getObjectByName(context, 'domain', name);
 }
@@ -245,6 +249,7 @@ async function wait(ms) {
 module.exports = {
     getDomain,
     getAssembly,
+    getAssemblyByName,
     getDomainByName,    
     getModule,
     getModuleByName,

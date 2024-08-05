@@ -432,17 +432,35 @@ async function generateSchema() {
 
         #######################################################################
 
+        type ConstraintListItem {
+            constraint: String
+            assembly: Ref
+            ruleGroup: String
+        }
+
+        input ConstraintListItemInput {
+            constraint: String!
+            assembly: RefInput!
+            ruleGroup: String
+        }
+
+        #######################################################################
+
         type Query {
             listDomains: [Domain]
+            getAssembly(assembly: RefInput!): Assembly
             listAssemblies: [Assembly]
             listModules: [Module]
             listGlobalFeatures: [Feature]
             listAttributeCategories: [AssemblyAttributeCategory]
 
-            upsertDomainQuery(domain: DomainInput!, contentType: ContentType!): JSON
-            upsertDomainsQuery(domains: [DomainInput]!, contentType: ContentType!): JSON
-
             job(id: ID!): Job
+
+            listConstraints(assembly: RefInput): [ConstraintListItem]
+
+            # upsertDomainQuery(domain: DomainInput!, contentType: ContentType!): JSON
+            # upsertDomainsQuery(domains: [DomainInput]!, contentType: ContentType!): JSON
+
         }
 
         #######################################################################
@@ -467,8 +485,12 @@ async function generateSchema() {
             upsertAttributeCategory(category: AssemblyAttributeCategoryInput!): AssemblyAttributeCategory
             upsertAttributeCategories(categories: [AssemblyAttributeCategoryInput]!): [AssemblyAttributeCategory]
 
+            upsertConstraints(constraints: [ConstraintListItemInput]!): Boolean
+
             # deltaUpsertDomain(domain: DomainDeltaInput!): Domain
             # deltaUpsertModule(module: ModuleInput!): Module
+
+            
         }
     `;
 

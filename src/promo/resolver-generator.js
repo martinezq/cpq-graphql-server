@@ -15,13 +15,15 @@ async function generateResolvers() {
         ...public.resolvers.Query,
         status: () => 'ready',
         listDomains,
+        getAssembly,
         listAssemblies,
         listModules,
         listGlobalFeatures,
         listAttributeCategories,
         // upsertDomainQuery,
         // upsertDomainsQuery
-        job
+        job,
+        listConstraints
     };
 
     let Mutation = {
@@ -41,6 +43,7 @@ async function generateResolvers() {
         upsertAttributeCategory,
         upsertAttributeCategories,
         // deltaUpsertDomain
+        upsertConstraints
     };
 
     let typeResolvers = {
@@ -79,6 +82,18 @@ async function listDomains(parent, args, context, info) {
     return data.domainResourceList.map(res => domainMapper.parseDomainResource(res, data));
 }
 
+async function getAssembly(parent, args, context, info) {
+    let data;
+
+    if (args.assembly.id) {
+        data = await cpq.getAssembly(context, args.assembly.id)
+    } else if (args.assembly.name) {
+        data = await cpq.getAssemblyByName(context, args.assembly.name)
+    } 
+
+    return assemblyMapper.parseAssemblyResource(data.assemblyResource, data);
+}
+
 async function listAssemblies(parent, args, context, info) {
     const data = await cpq.listAssemblies(context);
 
@@ -106,7 +121,6 @@ async function listAttributeCategories(parent, args, context, info) {
 async function job(parent, args, context, info) {
     return context.serverData.jobs[args.id];
 }
-
 
 async function deleteDomain(parent, args, context, info) {
     await cpq.deleteDomain(context, args.id);
@@ -283,6 +297,8 @@ async function upsertAttributeCategories(parent, args, context, info) {
 
 
 async function upsertAssembly(parent, args, context, info) {
+    throw 'Not implemented';
+
     const modules = await listModules(parent, args, context, info);
 
     const assemblyResource = assemblyMapper.buildAssemblyResource(args.assembly, { modules });
@@ -299,7 +315,7 @@ async function upsertAssembly(parent, args, context, info) {
 
     const mergedAssembly = assemblyMapper.mergeAssembly(assembly2, args.assembly);
 
-    const assemblyResource2 = assemblyMapper.buildAssemblyResource(mergedAssembly, { modules }, { includeCombinationRows: true });
+    const assemblyResource2 = assemblyMapper.buildAssemblyResource(mergedAssembly, { modules }, { includeNewCombinationRows: true });
 
     const data2 = await cpq.upsertAssembly(context, assemblyResource2);    
     const id2 = data2.assemblyNamedReference.id;
@@ -317,17 +333,31 @@ async function upsertAssembly(parent, args, context, info) {
 async function upsertAssemblies(parent, args, context, info) {
     const modules = await listModules(parent, args, context, info);
 
-    const resources = args.assemblies.map(assembly => assemblyMapper.buildAssemblyResource(assembly, { modules }));
+    const resp1 = await cpq.listAssemblies(context);
 
-    const lists = {
-        assemblyList: resources.map(r => r.assembly),
-        attributeList: R.flatten(resources.map(r => r.attributeList)),
-        positionList: R.flatten(resources.map(r => r.positionList)),
-        variantList: R.flatten(resources.map(r => r.variantList)),
-        ruleList: R.flatten(resources.map(r => r.ruleList))
+    const assemblies1 = resp1.assemblyResourceList.map(r1 => assemblyMapper.parseAssemblyResource({
+        ...r1.assemblyResource,
+        ...R.omit(['assemblyResource'], r1)
+    }, resp1));
+
+    const mergedAssemblies1 = assemblies1.map(assembly1 => {
+        const assemblyInput = args.assemblies.find(a => a.name === assembly1.name);
+        if (assemblyInput) {
+            return assemblyMapper.mergeAssembly(assembly1, assemblyInput);
+        }
+    }).filter(x => x !== undefined);
+
+    const resources1 = mergedAssemblies1.map(assembly => assemblyMapper.buildAssemblyResource(assembly, { modules }, { includeNewCombinationRows: false }));
+
+    const lists1 = {
+        assemblyList: resources1.map(r => r.assembly),
+        attributeList: R.flatten(resources1.map(r => r.attributeList)),
+        positionList: R.flatten(resources1.map(r => r.positionList)),
+        variantList: R.flatten(resources1.map(r => r.variantList)),
+        ruleList: R.flatten(resources1.map(r => r.ruleList))
     };
 
-    const data = await cpq.upsertAssemblies(context, lists);
+    await cpq.upsertAssemblies(context, lists1);
 
     const resp2 = await cpq.listAssemblies(context);
 
@@ -336,14 +366,14 @@ async function upsertAssemblies(parent, args, context, info) {
         ...R.omit(['assemblyResource'], r2)
     }, resp2));
 
-    const mergedAssemblies = assemblies2.map(assembly2 => {
+    const mergedAssemblies2 = assemblies2.map(assembly2 => {
         const assemblyInput = args.assemblies.find(a => a.name === assembly2.name);
         if (assemblyInput) {
             return assemblyMapper.mergeAssembly(assembly2, assemblyInput);
         }
     }).filter(x => x !== undefined);
 
-    const resources2 = mergedAssemblies.map(assembly => assemblyMapper.buildAssemblyResource(assembly, { modules }, { includeCombinationRows: true }));
+    const resources2 = mergedAssemblies2.map(assembly => assemblyMapper.buildAssemblyResource(assembly, { modules }, { includeNewCombinationRows: true }));
     
     const lists2 = {
         assemblyList: resources2.map(r => r.assembly),
@@ -356,6 +386,63 @@ async function upsertAssemblies(parent, args, context, info) {
     const data2 = await cpq.upsertAssemblies(context, lists2);    
 
     return data2.assemblyNamedReferenceList;
+}
+
+async function listConstraints(parent, args, context) {
+    let assemblies = [];
+    
+    if (args.assembly?.name || args.assembly?.id) {
+        assemblies = [await getAssembly(parent, args, context)];
+    } else {
+        assemblies = await listAssemblies(parent, args, context);
+    }
+
+    result = R.flatten(assemblies.map(a => 
+        a.rules
+            .filter(r => r.type === 'Constraint')
+            .map(r => ({
+                ...r,
+                assembly: a
+            }))
+    ));
+
+    return result;
+}
+
+async function upsertConstraints(parent, args, context) {
+    const constraints = args.constraints;
+
+    if (constraints.find(c => !c.assembly.id && !c.assembly.name)) {
+        throw `Missing assembly name or id`;
+    }
+
+    const assemblies = await listAssemblies(parent, args, context);
+    const assembliesById = R.groupBy(a => a.id, assemblies);
+    const assembliesByName = R.groupBy(a => a.name, assemblies);
+    
+    const constraintsWithAssemblyIds = constraints.map(c => ({
+        ...c,
+        assembly: {
+            id: c.assembly.id || assembliesByName[c.assembly.name]?.[0]?.id
+        }
+    }));
+
+    const groupsById = R.groupBy(c => c.assembly.id, constraintsWithAssemblyIds);
+
+    const deltaAssemblies = R.values(groupsById).map(gr => ({
+        id: gr[0].assembly.id,
+        rules: gr.map(x => ({
+            type: 'Constraint',
+            constraint: x.constraint,
+            ruleGroup: x.ruleGroup || 'Default'
+        }))
+    }));
+
+    const mergedAssemblies = deltaAssemblies.map(da => assemblyMapper.mergeAssembly(assembliesById[da.id]?.[0], da))
+
+    await upsertAssemblies(parent, { assemblies: mergedAssemblies }, context);
+
+    return true;
 }
 
 module.exports = {

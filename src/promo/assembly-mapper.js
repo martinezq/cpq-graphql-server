@@ -38,6 +38,7 @@ function parseAssemblyResource(assemblyResource, { attributeResourceList, positi
                 columns: ruleResource.rule.combinationRuleColumnList.map(c => c.value.replace(' » ', '.')),
                 columnIds: ruleResource.rule.combinationRuleColumnList.map(c => c.id),
                 rows: ruleResource.rule.combinationRuleRowList.map(r => ({
+                    id: r.id,
                     values: R.sortBy(
                         cc => ruleResource.rule.combinationRuleColumnList.findIndex(c => c.id === cc.combinationRuleColumnReference.id), 
                         r.combinationRuleCellList
@@ -128,26 +129,29 @@ function processCombinationColumns(combination, assembly, promoContext) {
     }).filter(x => x !== undefined);
 }
 
-function processCombinationRows(combination, assembly, promoContext) {
+function processCombinationRows(combination, assembly, promoContext, { includeNewCombinationRows }) {
     const rows = combination.rows || [];
 
-    return rows.map(row => ({
-        combinationRuleCellList: row.values.map((v, i) => ({
-            combinationRuleColumnReference: { id: combination.columnIds[i] },
-            value: v
-        }))
-    }));
+    return rows
+        .filter(row => includeNewCombinationRows || row.id)
+        .map(row => ({
+            id: row.id,
+            combinationRuleCellList: row.values.map((v, i) => ({
+                combinationRuleColumnReference: { id: combination.columnIds[i] },
+                value: v
+            }))
+        }));
 }
 
 function buildAssemblyRuleResources(assembly, promoContext, opts) {
 
-    const includeCombinationRows = opts?.includeCombinationRows || false;
+    const includeNewCombinationRows = opts?.includeNewCombinationRows || false;
 
     const ruleList = (assembly.rules || []).map(rule => ({
         ...R.omit(['assemblyNamedReference', 'combination'], rule),
         assemblyNamedReference: { name: assembly.name },
         combinationRuleColumnList: rule.combination !== undefined ? processCombinationColumns(rule.combination, assembly, promoContext) : [],
-        combinationRuleRowList: (rule.combination !== undefined && includeCombinationRows) ? processCombinationRows(rule.combination, assembly, promoContext) : []
+        combinationRuleRowList: rule.combination !== undefined  ? processCombinationRows(rule.combination, assembly, promoContext, { includeNewCombinationRows }) : []
     }));
 
     return ruleList;
@@ -215,19 +219,82 @@ function mergeAssembly(existingAssembly, deltaAssembly) {
         attributes: existingAssembly.attributes,
         positions: existingAssembly.positions,
         variants: existingAssembly.variants,
-        rules: existingAssembly.rules.map((existingRule, i) => {
-            const deltaRule = deltaAssembly.rules[i];
-            return {
-                ...existingRule,
-                combination: Boolean(existingRule.combination) ? {
-                    ...existingRule.combination,
-                    rows: deltaRule?.combination?.rows
-                } : undefined
-            };
-        })
+        rules: mergeRules(existingAssembly.rules, deltaAssembly.rules)
     };
 
     return merged;
+}
+
+function mergeRules(existingRules, deltaRules) {
+    const existingRulesBySig = R.groupBy(r => ruleSignature(r), existingRules);
+    const deltaRulesBySig = R.groupBy(r => ruleSignature(r), deltaRules);
+
+    const updatedRules = existingRules.map(existingRule => {
+        const existingRuleSig = ruleSignature(existingRule)
+        const deltaRule = deltaRulesBySig[existingRuleSig]?.[0];
+        
+        if (!deltaRule) {
+            return undefined; // make sure to remove rules that are outdated, can be parametrized in the future
+        }
+
+        if (existingRule.type === 'Combination') {
+            return {
+                ...existingRule,
+                combination: {
+                    ...existingRule.combination,
+                    rows: mergeCombinationRows(existingRule.combination.rows, deltaRule.combination.rows)
+                }
+            };
+        } else {
+            return {
+                ...existingRule,
+                ...deltaRule
+            }
+        }
+    }).filter(x => x !== undefined);
+
+    const addedRules = deltaRules.filter(r => !existingRulesBySig[ruleSignature(r)]);
+    const allRules = updatedRules.concat(addedRules);
+
+    return allRules;
+}
+
+function mergeCombinationRows(existingRows, deltaRows) {
+    const existingRowsBySig = R.groupBy(rowSignature, existingRows);
+    const deltaRowsBySig = R.groupBy(rowSignature, deltaRows);
+
+    const rows = 
+        existingRows.filter(existingRow => deltaRowsBySig[rowSignature(existingRow)])
+        .concat(deltaRows.filter(deltaRow => !existingRowsBySig[rowSignature(deltaRow)]));
+
+    return rows;
+}
+
+function ruleSignature(rule) {
+    if (rule.type === 'Constraint') {
+        return rule.constraint;
+    } else if (rule.type === 'Combination') {
+        return JSON.stringify(rule.combination.columns)
+    } else {
+        throw `Can't generate signature for unknown rule type: ${rule.type}`
+    }
+}
+
+function rowSignature(row) {
+    return JSON.stringify(row.values);
+}
+
+function mergeRules2(existingRules, deltaRules) {
+    return existingRules.map((existingRule, i) => {
+        const deltaRule = deltaAssembly.rules[i];
+        return {
+            ...existingRule,
+            combination: Boolean(existingRule.combination) ? {
+                ...existingRule.combination,
+                rows: deltaRule?.combination?.rows
+            } : undefined
+        };
+    });
 }
 
 // ----------------------------------------------------------------------------
