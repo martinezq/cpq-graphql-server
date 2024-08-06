@@ -35,7 +35,7 @@ function parseAssemblyResource(assemblyResource, { attributeResourceList, positi
         .map(ruleResource => ({
             ...R.omit(['combinationRuleColumnList', 'combinationRuleRowList'], ruleResource.rule),
             combination: Boolean(ruleResource.rule.combinationRuleColumnList) ? {
-                columns: ruleResource.rule.combinationRuleColumnList.map(c => c.value.replace(' » ', '.')),
+                columns: ruleResource.rule.combinationRuleColumnList.map(c => c.value?.replace(' » ', '.')),
                 columnIds: ruleResource.rule.combinationRuleColumnList.map(c => c.id),
                 rows: ruleResource.rule.combinationRuleRowList.map(r => ({
                     id: r.id,
@@ -211,18 +211,62 @@ function buildAssemblyResource(assembly, promoContext, opts) {
 // ----------------------------------------------------------------------------
 
 function mergeAssembly(existingAssembly, deltaAssembly) {
-    console.log('mergeAssembly', 'NOT FULLY IMPLEMENTED YET!');
+    console.log('mergeAssembly', 'EXPERIMENTAL, NEEDS SOME MORE TESTING!');
 
     const merged = {
         ...existingAssembly,
         ...R.omit(['attributes', 'positions', 'variants', 'rules'], deltaAssembly),
-        attributes: existingAssembly.attributes,
-        positions: existingAssembly.positions,
+        attributes: mergeAttributes(existingAssembly.attributes, deltaAssembly.attributes),
+        positions: mergePositions(existingAssembly.positions, deltaAssembly.positions),
         variants: existingAssembly.variants,
         rules: mergeRules(existingAssembly.rules, deltaAssembly.rules)
     };
 
     return merged;
+}
+
+function mergeAttributes(existingAttributes, deltaAttributes) {
+    const existingAttributesByName = R.groupBy(x => x.name, existingAttributes);
+    const deltaAttributesByName = R.groupBy(x => x.name, deltaAttributes);
+
+    const updatedAttributes = existingAttributes.map(existingAttribute => {
+        const deltaAttribute = deltaAttributesByName[existingAttribute.name]?.[0];
+
+        if (!deltaAttribute) {
+            return undefined;
+        } else {
+            return {
+                ...existingAttribute,
+                ...deltaAttribute
+            }
+        }
+    }).filter(x => x !== undefined);;
+
+    const newAttributes = deltaAttributes.filter(da => !existingAttributesByName[da.name]);
+
+    return updatedAttributes.concat(newAttributes);
+}
+
+function mergePositions(existingPositions, deltaPositions) {
+    const existingPositionsByName = R.groupBy(x => x.name, existingPositions);
+    const deltaPositionsByName = R.groupBy(x => x.name, deltaPositions);
+
+    const updatedPositions = existingPositions.map(existingPosition => {
+        const deltaPosition = deltaPositionsByName[existingPosition.name]?.[0];
+
+        if (!deltaPosition) {
+            return undefined;
+        } else {
+            return {
+                ...existingPosition,
+                ...deltaPosition
+            };
+        }
+    }).filter(x => x !== undefined);
+
+    const newPositions = deltaPositions.filter(dp => !existingPositionsByName[dp.name]);
+
+    return updatedPositions.concat(newPositions);
 }
 
 function mergeRules(existingRules, deltaRules) {

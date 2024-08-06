@@ -334,11 +334,14 @@ async function upsertAssemblies(parent, args, context, info) {
     const modules = await listModules(parent, args, context, info);
 
     const resp1 = await cpq.listAssemblies(context);
-
     const assemblies1 = resp1.assemblyResourceList.map(r1 => assemblyMapper.parseAssemblyResource({
         ...r1.assemblyResource,
         ...R.omit(['assemblyResource'], r1)
     }, resp1));
+
+    const assembliesByName1 = R.groupBy(a => a.name, assemblies1);
+
+    const newAssemblies1 = args.assemblies.filter(a => !assembliesByName1[a.name]);
 
     const mergedAssemblies1 = assemblies1.map(assembly1 => {
         const assemblyInput = args.assemblies.find(a => a.name === assembly1.name);
@@ -347,7 +350,9 @@ async function upsertAssemblies(parent, args, context, info) {
         }
     }).filter(x => x !== undefined);
 
-    const resources1 = mergedAssemblies1.map(assembly => assemblyMapper.buildAssemblyResource(assembly, { modules }, { includeNewCombinationRows: false }));
+    const allAssemblies1 = mergedAssemblies1.concat(newAssemblies1);
+
+    const resources1 = allAssemblies1.map(assembly => assemblyMapper.buildAssemblyResource(assembly, { modules }, { includeNewCombinationRows: false }));
 
     const lists1 = {
         assemblyList: resources1.map(r => r.assembly),
