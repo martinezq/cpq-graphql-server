@@ -210,29 +210,36 @@ function buildAssemblyResource(assembly, promoContext, opts) {
 
 // ----------------------------------------------------------------------------
 
-function mergeAssembly(existingAssembly, deltaAssembly) {
+function mergeAssembly(existingAssembly, deltaAssembly, opts) {
+
+    opts = opts || { removeMissing: true };
+
     console.log('mergeAssembly', 'EXPERIMENTAL, NEEDS SOME MORE TESTING!');
 
     const merged = {
         ...existingAssembly,
         ...R.omit(['attributes', 'positions', 'variants', 'rules'], deltaAssembly),
-        attributes: mergeAttributes(existingAssembly.attributes, deltaAssembly.attributes),
-        positions: mergePositions(existingAssembly.positions, deltaAssembly.positions),
+        attributes: mergeAttributes(existingAssembly.attributes, deltaAssembly.attributes, opts),
+        positions: mergePositions(existingAssembly.positions, deltaAssembly.positions, opts),
         variants: existingAssembly.variants,
-        rules: mergeRules(existingAssembly.rules, deltaAssembly.rules)
+        rules: mergeRules(existingAssembly.rules, deltaAssembly.rules, opts)
     };
 
     return merged;
 }
 
-function mergeAttributes(existingAttributes, deltaAttributes) {
+function mergeAttributes(existingAttributes, deltaAttributes, opts) {
+    const removeMissing = opts?.removeMissing || false;
+
+    deltaAttributes = deltaAttributes || [];
+
     const existingAttributesByName = R.groupBy(x => x.name, existingAttributes);
     const deltaAttributesByName = R.groupBy(x => x.name, deltaAttributes);
 
     const updatedAttributes = existingAttributes.map(existingAttribute => {
         const deltaAttribute = deltaAttributesByName[existingAttribute.name]?.[0];
 
-        if (!deltaAttribute) {
+        if (!deltaAttribute && removeMissing) {
             return undefined;
         } else {
             return {
@@ -247,14 +254,18 @@ function mergeAttributes(existingAttributes, deltaAttributes) {
     return updatedAttributes.concat(newAttributes);
 }
 
-function mergePositions(existingPositions, deltaPositions) {
+function mergePositions(existingPositions, deltaPositions, opts) {
+    const removeMissing = opts?.removeMissing || false;
+
+    deltaPositions = deltaPositions || [];
+    
     const existingPositionsByName = R.groupBy(x => x.name, existingPositions);
     const deltaPositionsByName = R.groupBy(x => x.name, deltaPositions);
 
     const updatedPositions = existingPositions.map(existingPosition => {
         const deltaPosition = deltaPositionsByName[existingPosition.name]?.[0];
 
-        if (!deltaPosition) {
+        if (!deltaPosition && removeMissing) {
             return undefined;
         } else {
             return {
@@ -269,7 +280,11 @@ function mergePositions(existingPositions, deltaPositions) {
     return updatedPositions.concat(newPositions);
 }
 
-function mergeRules(existingRules, deltaRules) {
+function mergeRules(existingRules, deltaRules, opts) {
+    const removeMissing = opts?.removeMissing || false;
+
+    deltaRules = deltaRules || [];
+
     const existingRulesBySig = R.groupBy(r => ruleSignature(r), existingRules);
     const deltaRulesBySig = R.groupBy(r => ruleSignature(r), deltaRules);
 
@@ -277,7 +292,7 @@ function mergeRules(existingRules, deltaRules) {
         const existingRuleSig = ruleSignature(existingRule)
         const deltaRule = deltaRulesBySig[existingRuleSig]?.[0];
         
-        if (!deltaRule) {
+        if (!deltaRule && removeMissing) {
             return undefined; // make sure to remove rules that are outdated, can be parametrized in the future
         }
 
@@ -286,7 +301,7 @@ function mergeRules(existingRules, deltaRules) {
                 ...existingRule,
                 combination: {
                     ...existingRule.combination,
-                    rows: mergeCombinationRows(existingRule.combination.rows, deltaRule.combination.rows)
+                    rows: mergeCombinationRows(existingRule.combination.rows, deltaRule?.combination?.rows, opts)
                 }
             };
         } else {
@@ -303,12 +318,16 @@ function mergeRules(existingRules, deltaRules) {
     return allRules;
 }
 
-function mergeCombinationRows(existingRows, deltaRows) {
+function mergeCombinationRows(existingRows, deltaRows, opts) {
+    const removeMissing = opts?.removeMissing || false;
+
+    deltaRows = deltaRows || [];
+
     const existingRowsBySig = R.groupBy(rowSignature, existingRows);
     const deltaRowsBySig = R.groupBy(rowSignature, deltaRows);
 
     const rows = 
-        existingRows.filter(existingRow => deltaRowsBySig[rowSignature(existingRow)])
+        existingRows.filter(existingRow => deltaRowsBySig[rowSignature(existingRow)] || !removeMissing)
         .concat(deltaRows.filter(deltaRow => !existingRowsBySig[rowSignature(deltaRow)]));
 
     return rows;

@@ -346,7 +346,7 @@ async function upsertAssemblies(parent, args, context, info) {
     const mergedAssemblies1 = assemblies1.map(assembly1 => {
         const assemblyInput = args.assemblies.find(a => a.name === assembly1.name);
         if (assemblyInput) {
-            return assemblyMapper.mergeAssembly(assembly1, assemblyInput);
+            return assemblyMapper.mergeAssembly(assembly1, assemblyInput, { removeMissing: true });
         }
     }).filter(x => x !== undefined);
 
@@ -374,7 +374,7 @@ async function upsertAssemblies(parent, args, context, info) {
     const mergedAssemblies2 = assemblies2.map(assembly2 => {
         const assemblyInput = args.assemblies.find(a => a.name === assembly2.name);
         if (assemblyInput) {
-            return assemblyMapper.mergeAssembly(assembly2, assemblyInput);
+            return assemblyMapper.mergeAssembly(assembly2, assemblyInput, { removeMissing: true });
         }
     }).filter(x => x !== undefined);
 
@@ -443,7 +443,7 @@ async function upsertConstraints(parent, args, context) {
         }))
     }));
 
-    const mergedAssemblies = deltaAssemblies.map(da => assemblyMapper.mergeAssembly(assembliesById[da.id]?.[0], da))
+    const mergedAssemblies = deltaAssemblies.map(da => assemblyMapper.mergeAssembly(assembliesById[da.id]?.[0], da, { removeMissing: false }))
 
     await upsertAssemblies(parent, { assemblies: mergedAssemblies }, context);
 
