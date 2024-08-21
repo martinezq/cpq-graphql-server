@@ -41,7 +41,7 @@ function parseAssemblyResource(assemblyResource, { attributeResourceList, positi
                     id: r.id,
                     values: R.sortBy(
                         cc => ruleResource.rule.combinationRuleColumnList.findIndex(c => c.id === cc.combinationRuleColumnReference.id), 
-                        r.combinationRuleCellList
+                        r.combinationRuleCellList.filter(cc => ruleResource.rule.combinationRuleColumnList.find(c => c.id === cc.combinationRuleColumnReference.id)) // eliminate "ghost" values (not seen in Admin)
                     ).map(v => v.value)
                 }))
             } : undefined
