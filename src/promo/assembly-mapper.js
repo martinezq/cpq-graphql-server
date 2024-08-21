@@ -105,7 +105,7 @@ function processCombinationColumns(combination, assembly, promoContext) {
             const moduleNamedReference = positions.find(p => p.name === positionName)?.module;
             const assemblyNamedReference = positions.find(p => p.name === positionName)?.assembly;
             
-            const isModulePosition = Boolean(modulesByName[moduleNamedReference.name]);
+            const isModulePosition = Boolean(modulesByName[moduleNamedReference?.name]);
             const isAssemblyPosition = !isModulePosition;
 
             if (isModulePosition) {
