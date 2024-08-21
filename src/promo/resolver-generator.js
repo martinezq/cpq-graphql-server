@@ -428,7 +428,8 @@ async function upsertConstraints(parent, args, context, info) {
     const constraintsWithAssemblyIds = constraints.map(c => ({
         ...c,
         assembly: {
-            id: c.assembly.id || assembliesByName[c.assembly.name]?.[0]?.id
+            id: c.assembly.id || assembliesByName[c.assembly.name]?.[0]?.id,
+            name : c.assembly.name
         }
     }));
 
@@ -436,12 +437,19 @@ async function upsertConstraints(parent, args, context, info) {
 
     const deltaAssemblies = R.values(groupsById).map(gr => ({
         id: gr[0].assembly.id,
+        name: gr[0].assembly.name,
         rules: gr.map(x => ({
             type: 'Constraint',
             constraint: x.constraint,
             ruleGroup: x.ruleGroup || 'Default'
         }))
     }));
+
+    const unknownAssemblies = deltaAssemblies.filter(da => !da.id);
+
+    if (unknownAssemblies.length > 0) {
+        throw `Unknown assemblies: ${unknownAssemblies.map(a => a.name).join(', ')}`;
+    }
 
     const mergedAssemblies = deltaAssemblies.map(da => assemblyMapper.mergeAssembly(assembliesById[da.id]?.[0], da, { removeMissing: false }))
     // const mergedAssemblies = deltaAssemblies.map(da => assembliesById[da.id]?.[0]);
