@@ -98,29 +98,33 @@ function processCombinationColumns(combination, assembly, promoContext) {
             const featureOrSubAttributeName = columnString.split('.')[1];
             
             const isQty = featureOrSubAttributeName === 'Qty';
-            // const isQty = false; // Tacton bug: not supported in API!
+            const isModuleVariant = featureOrSubAttributeName === 'Module Variant';
+            const isFeature = !isQty && !isModuleVariant;
 
-            const refModuleName = positions.find(p => p.name === positionName)?.module?.name;
-            const refAssemblyName = positions.find(p => p.name === positionName)?.assembly?.name;
+            const positionNamedReference = R.pick(['id', 'name'], positions.find(p => p.name === positionName));
+            const moduleNamedReference = positions.find(p => p.name === positionName)?.module;
+            const assemblyNamedReference = positions.find(p => p.name === positionName)?.assembly;
             
-            const isModulePosition = Boolean(modulesByName[refModuleName]);
+            const isModulePosition = Boolean(modulesByName[moduleNamedReference.name]);
             const isAssemblyPosition = !isModulePosition;
 
             if (isModulePosition) {
                 return {
                     id: combination.columnIds?.[i],
-                    positionNamedReference: { name: positionName },
-                    moduleNamedReference: { name: refModuleName },
-                    featureNamedReference: !isQty ? { name: featureOrSubAttributeName } : undefined
+                    positionNamedReference,
+                    moduleNamedReference,
+                    featureNamedReference: isFeature ? { name: featureOrSubAttributeName } : undefined,
+                    value: columnString.replace('.', ' » ')
                 }
             }
 
             if (isAssemblyPosition) {
                 return {
                     id: combination.columnIds?.[i],
-                    positionNamedReference: { name: positionName },
-                    assemblyNamedReference: { name: refAssemblyName },
-                    attributeNamedReference: !isQty ? { name: featureOrSubAttributeName } : undefined
+                    positionNamedReference,
+                    assemblyNamedReference,
+                    attributeNamedReference: !isQty ? { name: featureOrSubAttributeName } : undefined,
+                    value: columnString.replace('.', ' » ')
                 }
             }
 

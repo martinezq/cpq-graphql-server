@@ -414,7 +414,7 @@ async function listConstraints(parent, args, context) {
     return result;
 }
 
-async function upsertConstraints(parent, args, context) {
+async function upsertConstraints(parent, args, context, info) {
     const constraints = args.constraints;
 
     if (constraints.find(c => !c.assembly.id && !c.assembly.name)) {
@@ -444,8 +444,21 @@ async function upsertConstraints(parent, args, context) {
     }));
 
     const mergedAssemblies = deltaAssemblies.map(da => assemblyMapper.mergeAssembly(assembliesById[da.id]?.[0], da, { removeMissing: false }))
+    // const mergedAssemblies = deltaAssemblies.map(da => assembliesById[da.id]?.[0]);
 
-    await upsertAssemblies(parent, { assemblies: mergedAssemblies }, context);
+    const modules = await listModules(parent, args, context, info);
+
+    const resources = mergedAssemblies.map(assembly => assemblyMapper.buildAssemblyResource(assembly, { modules }, { includeNewCombinationRows: false }));
+
+    const lists = {
+        assemblyList: resources.map(r => r.assembly),
+        attributeList: R.flatten(resources.map(r => r.attributeList)),
+        positionList: R.flatten(resources.map(r => r.positionList)),
+        variantList: R.flatten(resources.map(r => r.variantList)),
+        ruleList: R.flatten(resources.map(r => r.ruleList))
+    };
+
+    await cpq.upsertAssemblies(context, lists);
 
     return true;
 }
