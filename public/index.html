@@ -65,14 +65,257 @@
         initialEndpoint: initialEndpoint,
         initialState: {
           document: `
-query ExampleQuery {
-  listAssemblies {
+query Examples {
+  status
+}
+
+query GlobalFeatures {
+  listGlobalFeatures {
     name
-    attributes {
+    description
+    descriptionTranslations {
+      en
+      de
+    }
+    initialValue
+    domain {
       name
+    }
+  }
+}
+
+mutation GlobalFeatures {
+  upsertGlobalFeatures(features: [
+      {
+        name: "newFeature_global",
+        description: "Some new global feature",
+        descriptionTranslations: null,
+        initialValue: null,
+        domain: {
+          name: "Boolean"
+        }
+      }
+    ]) {
+    id
+  }
+}
+
+query Domains {
+  listDomains {
+    name
+    description
+    type
+    valueType
+    booleanNo {
+      name
+    }
+    booleanYes {
+      name
+    }
+    decimals
+    enumElementList {
+      name
+      description
+      value
+      longDescription
+      descriptionTranslations {
+        en
+        de
+      }
+      longDescriptionTranslations {
+        en
+        de
+      }
+    }
+  }
+}
+
+mutation Domains {
+  upsertDomains(domains: [{
+        name: "newDomain_domain",
+        description: "Some new domain",
+        type: Enum,
+        valueType: null,
+        booleanNo: null,
+        booleanYes: null,
+        decimals: null,
+        enumElementList: [
+          {
+            name: "good",
+            description: "This is good",
+            value: null,
+            longDescription: null,
+            descriptionTranslations: null,
+            longDescriptionTranslations: null
+          },
+          {
+            name: "better",
+            description: "That's much better",
+            value: null,
+            longDescription: null,
+            descriptionTranslations: null,
+            longDescriptionTranslations: null
+          },
+          {
+            name: "best",
+            description: "The best one",
+            value: null,
+            longDescription: null,
+            descriptionTranslations: null,
+            longDescriptionTranslations: null
+          }
+        ]
+      }]) {
+    id
+  }
+}
+
+query Modules {
+  listModules {
+    name
+    description
+    descriptionTranslations {
+      en
+      de
+    }
+    features {
+      name
+      description
+      descriptionTranslations {
+        en
+        de
+      }
       domain {
         name
       }
+      initialValue
+    }
+    variants {
+      name
+      description
+      descriptionTranslations {
+        en
+        de
+      }
+      longDescription
+      longDescriptionTranslations {
+        en
+        de
+      }
+       status
+       image
+       document
+       values {
+         feature {
+           name
+         }
+         value
+       }
+    }
+  }
+}
+
+mutation Modules {
+  upsertModules(
+    modules: [
+      {
+        name: "someNewModule_module"
+        description: "Some new module"
+        descriptionTranslations: null
+        features: [
+          {
+            name: "isPremium"
+            description: "Is premium"
+            descriptionTranslations: null
+            domain: { name: "Boolean" }
+            initialValue: null
+          }
+          {
+            name: "weight"
+            description: "Weight"
+            descriptionTranslations: null
+            domain: { name: "Integer" }
+            initialValue: null
+          }
+        ]
+        variants: [
+          {
+            name: "variant_standard"
+            description: "Standard"
+            descriptionTranslations: null
+            longDescription: null
+            longDescriptionTranslations: null
+            status: Active
+            image: null
+            document: null
+            values: [
+              { feature: { name: "weight" }, value: "300" }
+              { feature: { name: "isPremium" }, value: "No" }
+              # { feature: { name: "isNonStandard_global" }, value: "No" }
+              # { feature: { name: "excludeFromMvc_global" }, value: "No" }
+            ]
+          }
+          {
+            name: "variant_premium"
+            description: "Premium"
+            descriptionTranslations: null
+            longDescription: null
+            longDescriptionTranslations: null
+            status: Active
+            image: null
+            document: null
+            values: [
+              { feature: { name: "weight" }, value: "500" }
+              { feature: { name: "isPremium" }, value: "Yes" }
+              # { feature: { name: "isNonStandard_global" }, value: "No" }
+              # { feature: { name: "excludeFromMvc_global" }, value: "No" }
+            ]
+          }
+        ]
+      }
+    ]
+  ) {
+    id
+  }
+}
+
+query Assemblies {
+  listAssemblies {
+    name
+    description
+    descriptionTranslations {
+      en
+      de
+    }
+    variantEnabled
+    virtualVariant {
+      name
+      description
+      values {
+        attribute {
+          name
+        }
+        feature {
+          name
+        }
+        value
+      }
+    }
+    attributes {
+      name
+      description
+      descriptionTranslations {
+        en
+        de
+      }
+      domain {
+        name
+      }
+
+      category {
+        name
+      }
+      defaultView
       io
       aggregationStrategy
       aggregateList {
@@ -89,7 +332,18 @@ query ExampleQuery {
     }
     positions {
       name
+      description
+      descriptionTranslations {
+        en
+        de
+      }
+      defaultView
+      enabled
+      dynamic
+
       module {
+        name
+      } assembly {
         name
       }
       qtyMin
@@ -97,6 +351,9 @@ query ExampleQuery {
       qtyType
     }
     rules {
+      enabled
+      ruleGroup
+      type
       constraint
       combination {
         columns
@@ -105,6 +362,24 @@ query ExampleQuery {
         }
       }
     }
+  }
+}
+
+query AttributeCategories {
+  listAttributeCategories {
+    name
+    description
+  }
+}
+
+mutation AttributeCategories {
+  upsertAttributeCategories(categories: [
+      {
+        name: "NewCategory",
+        description: "Some new category"
+      }
+    ]) {
+    name
   }
 }
           `

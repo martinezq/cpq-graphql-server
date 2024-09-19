@@ -74,7 +74,7 @@ function processCombinationColumns(combination, assembly, promoContext) {
     const modules = promoContext.modules || [];
     const modulesByName = R.mapObjIndexed((v, k) => R.head(v), R.groupBy(x => x.name, modules));
 
-    const columns = combination.columns || [];
+    const columns = combination?.columns || [];
     const positions = assembly.positions || [];
 
     return columns.map((columnString, i) => {
@@ -134,7 +134,7 @@ function processCombinationColumns(combination, assembly, promoContext) {
 }
 
 function processCombinationRows(combination, assembly, promoContext, { includeNewCombinationRows }) {
-    const rows = combination.rows || [];
+    const rows = combination?.rows || [];
 
     return rows
         .filter(row => includeNewCombinationRows || row.id)
