@@ -53,18 +53,43 @@
       localStorage.setItem('ticket', ticket);
       localStorage.setItem('user', user);
 
-      // alert(initialEndpoint);
+      const exampleShort = `
+query Examples {
+  status
+}
 
-      const main = document.getElementById("main");
-      main.parentNode.removeChild(main);
+query Domains {
+  listDomains {
+    name
+    description
+    type
+    valueType
+    booleanNo {
+      name
+    }
+    booleanYes {
+      name
+    }
+    decimals
+    enumElementList {
+      name
+      description
+      value
+      longDescription
+      descriptionTranslations {
+        en
+        de
+      }
+      longDescriptionTranslations {
+        en
+        de
+      }
+    }
+  }
+}
 
-      const embeddedDiv = document.getElementById("embedded-sandbox");
-
-      new window.EmbeddedSandbox({
-        target: '#embedded-sandbox',
-        initialEndpoint: initialEndpoint,
-        initialState: {
-          document: `
+      `;
+      const exampleLong = `
 query Examples {
   status
 }
@@ -382,7 +407,20 @@ mutation AttributeCategories {
     name
   }
 }
-          `
+`;
+
+      // alert(initialEndpoint);
+
+      const main = document.getElementById("main");
+      main.parentNode.removeChild(main);
+
+      const embeddedDiv = document.getElementById("embedded-sandbox");
+
+      new window.EmbeddedSandbox({
+        target: '#embedded-sandbox',
+        initialEndpoint: initialEndpoint,
+        initialState: {
+          document: ''
         },
         handleRequest: (endpointUrl, options) => {
           return fetch(endpointUrl, {
