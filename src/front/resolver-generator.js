@@ -235,12 +235,26 @@ async function transitionResource(context, args, structure) {
     };
 }
 
-async function executeMassOperation(args, list, func) {
+async function executeMassOperation(args, list, func, statusFunc = () => {}) {
     const ignoreErrors = args.opts?.ignoreErrors || false;
     const parallel = args.opts?.parallel || 1;
 
     let errors = [];
     let count = 0;
+
+    const reportStatus = () => {
+        const statusData = {
+            totalCount: list.length,
+            leftCount: list.length - count - errors.length,
+            successCount: count,
+            errorCount: errors.length,
+            errors
+        };
+        
+        statusFunc(statusData);
+
+        return statusData;
+    };
 
     const buckets = R.splitEvery(parallel, list);
 
@@ -249,9 +263,11 @@ async function executeMassOperation(args, list, func) {
             try {
                 await func(c);
                 count++;
+                reportStatus();
             } catch (e) {
                 if (ignoreErrors) {
                     errors.push(e.toString());
+                    reportStatus();
                 } else {
                     throw e;
                 }
@@ -259,22 +275,19 @@ async function executeMassOperation(args, list, func) {
         })); 
     }), Promise.resolve());
 
-    return {
-        totalCount: list.length,
-        successCount: count,
-        errorCount: errors.length,
-        errors
-    };
+    return reportStatus();
 }
 
 async function updateManyResources(context, args, structure) {
     const list = await listResources(context, { ...args, params: { ...(args.params), limit: 1000000, page: 1000 }}, structure, !Boolean(args.filter));
     const args2 = await resolveLookups(context, args, structure);
 
-    return await executeMassOperation(args, list, async (current) => {
-        const localArgs = { ...args2, _id: current._latestVersion };
-        return await cpq.update(context, structure.apiType, localArgs);
-    });
+    return await executeMassOperation(args, list, 
+        async (current) => {
+            const localArgs = { ...args2, _id: current._latestVersion };
+            return await cpq.update(context, structure.apiType, localArgs);
+        }
+    );
 }
 
 async function updateManyResourcesAsync(context, args, structure) {
@@ -289,16 +302,21 @@ async function updateManyResourcesAsync(context, args, structure) {
         const list = await listResources(context, { ...args, params: { ...(args.params), limit: 1000000, page: 1000 }}, structure, !Boolean(args.filter));
         const args2 = await resolveLookups(context, args, structure);
 
-        return await executeMassOperation(args, list, async (current) => {
-            const localArgs = { ...args2, _id: current._latestVersion };
-            return await cpq.update(context, structure.apiType, localArgs);
-        });
+        return await executeMassOperation(args, list, 
+            async (current) => {
+                const localArgs = { ...args2, _id: current._latestVersion };
+                return await cpq.update(context, structure.apiType, localArgs);
+            },
+            (status) => {
+                context.serverData.jobs[jobId].output = status;
+            }
+        );
     }
 
     func()
         .then(result => {
             context.serverData.jobs[jobId].status = "Completed";
-            context.serverData.jobs[jobId].output = result;
+            // context.serverData.jobs[jobId].output = result;
         })
         .catch(error => {
             context.serverData.jobs[jobId].status = "Error";
