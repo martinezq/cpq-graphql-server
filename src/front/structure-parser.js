@@ -25,6 +25,7 @@ function parseDescribeResponse(resp) {
             gqlUpdateMutationName: 'update' + r.name,
             gqlTransitionMutationName: 'transition' + r.name,
             gqlUpdateManyMutationName: 'updateMany' + toPlural(r.name),
+            gqlUpdateManyAsyncMutationName: 'updateMany' + toPlural(r.name) + "Async",
             gqlDeleteManyMutationName: 'deleteMany' + toPlural(r.name),
             gqlTransitionManyMutationName: 'transitionMany' + toPlural(r.name),
             apiType: r.name.toLowerCase(),

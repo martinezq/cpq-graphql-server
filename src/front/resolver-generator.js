@@ -5,6 +5,8 @@ const cpq = require('./cpq-client');
 const public = require('../common/public-schema');
 const { parse } = require('qs');
 
+const { v4: uuidv4 } = require('uuid');
+
 
 async function generateResolvers(structure) {
     
@@ -25,6 +27,7 @@ async function generateResolvers(structure) {
     structure.forEach(r => {
         Query[r.gqlListQueryName] = async (parent, args, context, info) => listResources(context, args, r);
         Query[r.gqlGetQueryName] = async (parent, args, context, info) => getResource(context, args, r);
+        Query['job'] = job;
 
         Mutation[r.gqlCopyMutationName] = async (parent, args, context, info) => copyResource(context, args, r)
         Mutation[r.gqlAddMutationName] = async (parent, args, context, info) => addResource(context, args, r)
@@ -32,6 +35,7 @@ async function generateResolvers(structure) {
         Mutation[r.gqlUpdateMutationName] = async (parent, args, context, info) => updateResource(context, args, r)
         Mutation[r.gqlTransitionMutationName] = async (parent, args, context, info) => transitionResource(context, args, r)
         Mutation[r.gqlUpdateManyMutationName] = async (parent, args, context, info) => updateManyResources(context, args, r)
+        Mutation[r.gqlUpdateManyAsyncMutationName] = async (parent, args, context, info) => updateManyResourcesAsync(context, args, r)
         Mutation[r.gqlDeleteManyMutationName] = async (parent, args, context, info) => deleteManyResources(context, args, r)
         Mutation[r.gqlTransitionManyMutationName] = async (parent, args, context, info) => transitionManyResources(context, args, r)
         Mutation['recalculatePricing'] = async (parent, args, context, info) => recalculatePricing(context, args, r),
@@ -273,6 +277,37 @@ async function updateManyResources(context, args, structure) {
     });
 }
 
+async function updateManyResourcesAsync(context, args, structure) {
+    const jobId = uuidv4();
+
+    context.serverData.jobs[jobId] = {
+        id: jobId,
+        status: 'InProgress'
+    };
+
+    const func = async () => {
+        const list = await listResources(context, { ...args, params: { ...(args.params), limit: 1000000, page: 1000 }}, structure, !Boolean(args.filter));
+        const args2 = await resolveLookups(context, args, structure);
+
+        return await executeMassOperation(args, list, async (current) => {
+            const localArgs = { ...args2, _id: current._latestVersion };
+            return await cpq.update(context, structure.apiType, localArgs);
+        });
+    }
+
+    func()
+        .then(result => {
+            context.serverData.jobs[jobId].status = "Completed";
+            context.serverData.jobs[jobId].output = result;
+        })
+        .catch(error => {
+            context.serverData.jobs[jobId].status = "Error";
+            context.serverData.jobs[jobId].error = error;
+        });
+
+    return context.serverData.jobs[jobId];
+}
+
 async function deleteManyResources(context, args, structure) {
     const list = await listResources(context, { ...args, params: { limit: 1000000, page: 1000 }}, structure, !Boolean(args.filter));
 
@@ -478,6 +513,10 @@ function parseBomStructure(bom) {
     }
 
     return { items: R.flatten([bom.items.item]).map(parseItem)};
+}
+
+async function job(parent, args, context, info) {
+    return context.serverData.jobs[args.id];
 }
 
 module.exports = {

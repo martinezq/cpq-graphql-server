@@ -124,6 +124,10 @@ async function registerApolloServer(server, path) {
     
     const router = express.Router();
 
+    const serverData = {
+        jobs: {}
+    };
+
     router.use(
         path,
         cors(),
@@ -133,7 +137,8 @@ async function registerApolloServer(server, path) {
                 baseurl: `https:/${path}`,
                 headers: {
                     authorization: req.headers.authorization
-                }
+                },
+                serverData
             }),
         })
     );
