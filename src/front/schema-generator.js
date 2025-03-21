@@ -114,12 +114,20 @@ async function generateSchema(structure) {
 
         ${r.gqlTransitionMutationName}(_id: ID!, transition: ${r.gqlName}TransitionArgument!, opts: MassOperationOptions): MassOperationStatus
 
-        """Update many ${r.gqlNamePlural} (up to 1000 at once) \n\n
+        """Update many ${r.gqlNamePlural} \n\n
             *params*: server side params \n
             *criteria*: server side filtering, works only for indexed attributes \n
             *filter*: implemented in middleware, slower but works for all attributes  \n
         """
         ${r.gqlUpdateManyMutationName}(params: MassMutationQueryParams, criteria: ${r.gqlListQueryName}QueryCriteria!, filter: ${r.gqlListQueryName}FilterCriteria, opts: MassOperationOptions, attributes: ${r.name}Attributes!): MassOperationStatus
+
+        """Update many ${r.gqlNamePlural} as async job \n\n
+            *params*: server side params \n
+            *criteria*: server side filtering, works only for indexed attributes \n
+            *filter*: implemented in middleware, slower but works for all attributes  \n
+        """
+        ${r.gqlUpdateManyAsyncMutationName}(params: MassMutationQueryParams, criteria: ${r.gqlListQueryName}QueryCriteria!, filter: ${r.gqlListQueryName}FilterCriteria, opts: MassOperationOptions, attributes: ${r.name}Attributes!): Job
+
 
         """Delete many ${r.gqlNamePlural} (up to 1000 at once) \n\n
             *criteria*: server side filtering, works only for indexed attributes \n
@@ -192,6 +200,7 @@ async function generateSchema(structure) {
             status: String
             authorizationHeader(credentials: Credentials!): AuthHeader
             ${queries.join('\n')}
+            job(id: ID!): Job
         }
 
         type Mutation {
@@ -236,6 +245,19 @@ async function generateSchema(structure) {
         type BomAttribute {
             name: String
             value: String
+        }
+
+        enum JobStatus {
+            InProgress
+            Completed
+            Error
+        }
+
+        type Job {
+            id: ID
+            status: JobStatus!
+            error: String
+            output: JSON
         }
     `;
 

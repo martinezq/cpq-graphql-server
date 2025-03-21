@@ -343,7 +343,7 @@ async function handleErrors(func, body, retries) {
                         console.log('...Retrying last command');
                         return wait(delay).then(() => handleErrors(func, body, retries - 1));
                     } else {
-                        return Promise.reject(new ApolloError(r.data, status)); 
+                        return Promise.reject(new GraphQLError(r.data, { status })); 
                     }
                 case 403:
                     return Promise.reject(new GraphQLError(`Authentication error, check "Authorization" header and CPQ permissions!`, {
@@ -354,11 +354,11 @@ async function handleErrors(func, body, retries) {
             };
 
             console.log('REQUEST DATA', body);
-            return Promise.reject(new ApolloError(r.data, status));
+            return Promise.reject(new GraphQLError(r.data, { status }));
 
         }
 
-        return Promise.reject(new ApolloError(error.message, error.status));
+        return Promise.reject(new GraphQLError(error.message, { status: error.status }));
     });
 }
 
