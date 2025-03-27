@@ -22,7 +22,6 @@ async function generateSchema() {
             Fixed
         }
 
-
         enum Status {
             Active
         }      
@@ -446,6 +445,45 @@ async function generateSchema() {
 
         #######################################################################
 
+        # Simplified model
+
+        input SimplifiedModel {
+            modules: [SimplifiedModule]
+            assemblies: [SimplifiedAssembly]
+        }
+
+        input SimplifiedModule {
+            name: String!
+            features: [SimplifiedModuleFeature]
+            variants: [SimplifiedModuleVariant]
+        }
+
+        input SimplifiedModuleFeature {
+            name: String!
+            domain: String
+        }
+
+        input SimplifiedModuleVariant {
+            name: String!
+            values: [SimplifiedModuleVariantValues]
+        }
+
+        input SimplifiedModuleVariantValues {
+            feature: String!
+            values: [String]
+        }
+
+        input SimplifiedAssembly {
+            name: String!
+            positions: [SimplifiedAssemblyPosition]
+        }
+
+        input SimplifiedAssemblyPosition {
+            name: String!
+        }
+
+        #######################################################################
+
         type Query {
             listDomains: [Domain]
             getAssembly(assembly: RefInput!): Assembly
@@ -490,6 +528,7 @@ async function generateSchema() {
             # deltaUpsertDomain(domain: DomainDeltaInput!): Domain
             # deltaUpsertModule(module: ModuleInput!): Module
 
+            upsertSimplifiedModel(model: SimplifiedModel!): JSON
             
         }
     `;

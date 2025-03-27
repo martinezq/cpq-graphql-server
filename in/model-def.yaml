@@ -1,0 +1,52 @@
+# This file uses human friendly names which will be mapped to descriptions
+# names will be generated using lower camel case notation followed by _[type], where [type] can be: module, assembly, domain, position, feature, variant, ...
+
+Model: My test model
+
+# List of domains to create
+# - each domain must have a name
+# - domains are all of enum type and Values are required
+Domains:
+
+  - Name: Color
+    Values:
+    - Red
+    - Green
+    - Black
+
+  - Name: Power
+    Values:
+    - Low
+    - Medium
+    - High
+
+# List of assemblies to create
+# Attributes will be created as i/o
+# Attribute domain is associated using name (name of attribute and domain are the same)
+# If domain for an attribute is missing, it will be created
+# Positions can be realized by modules or assemblies and will be associated by name
+# If no module nor assembly exists, it's assumed to be a module
+# Missing modules will be created with no variants
+# If position is of module, all module features not listed directly as attributes will be added and used to aggregate feature values
+# If position is of assembly, the same principle will apply for position's assembly attributes 
+Assemblies:
+  - Name: Car
+    Attributes:
+    - Color
+    - Power
+    - Sound
+    Positions:
+    - Name: Frame
+    - Name: Engine
+    - Name: Body
+
+Modules:
+  - Name: Frame
+    Variants:
+    - Name: Light
+      Values:
+        Color: Red, Green
+        Power: Low
+    - Name: Heavy Duty
+      Values:
+        Power: High

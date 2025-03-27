@@ -8,6 +8,7 @@ const public = require('../common/public-schema');
 const assemblyMapper = require('./assembly-mapper');
 const moduleMapper = require('./module-mapper');
 const domainMapper = require('./domain-mapper');
+const simplifiedModelMapper = require('./simplified-model-mapper')
 
 async function generateResolvers() {
 
@@ -43,7 +44,8 @@ async function generateResolvers() {
         upsertAttributeCategory,
         upsertAttributeCategories,
         // deltaUpsertDomain
-        upsertConstraints
+        upsertConstraints,
+        upsertSimplifiedModel
     };
 
     let typeResolvers = {
@@ -470,6 +472,21 @@ async function upsertConstraints(parent, args, context, info) {
 
     return true;
 }
+
+// ----------------------------------------------------------------------------
+
+async function upsertSimplifiedModel(parent, args, context, info) {
+  
+    const model = simplifiedModelMapper.convertSimplifiedModel(args.model);
+
+    await upsertDomains(parent, model, context, info);
+    await upsertModules(parent, model, context, info);
+    await upsertAssemblies(parent, model, context, info);
+
+    return model;
+}
+
+// ----------------------------------------------------------------------------
 
 module.exports = {
     generateResolvers
