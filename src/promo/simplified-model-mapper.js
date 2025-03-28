@@ -32,10 +32,13 @@ function convertSimplifiedModel(model) {
         variants: module.variants.map(variant => ({
             name: variantName(variant.name),
             description: variant.name,
-            values: variant?.values?.map(value => ({
+            values: (variant?.values?.map(value => ({
                 feature: { name: featureName(value.feature) },
                 value: value.values?.map(domainElementName)?.join('; ') || 'unspecified'
-            }))
+            })) || []).concat(variant.isNonStandard ? [{
+                feature: { name: 'isNonStandard'},
+                value: 'Yes'
+            }] : [])
         }))
     }));
 
@@ -46,17 +49,32 @@ function convertSimplifiedModel(model) {
             name: positionName(position.name),
             description: position.name,
             type: position.type,
-            module: position.type === 'Module' ? { name: moduleName(position.name ) } : undefined,
-            assembly: position.type === 'Assembly' ? { name: assemblyName(position.name ) }: undefined
+            module: position.type === 'Module' || position.type === 'Options' ? { name: moduleName(position.moduleName ) } : undefined,
+            assembly: position.type === 'Assembly' ? { name: assemblyName(position.assemblyName ) }: undefined
         })),
         attributes: assembly.attributes.map(attribute => ({
             name: attributeName(attribute.name),
             description: attribute.name,
-            domain: { name: domainName(attribute.name) }
+            domain: { name: domainName(attribute.name) },
+            io: true,
+            aggregationStrategy: attribute.aggregation,
+            aggregateList: attribute.aggregateList.map(item => ({
+                position: { name: positionName(item.position) },
+                feature: item.feature ? { name: featureName(item.feature) } : undefined,
+                attribute: item.attribute ? { name: attributeName(item.attribute) } : undefined
+            }))
         }))
     }))
 
+    const globalFeatures = completedModel.globalFeatures.map(feature => ({
+        name: featureName(feature.name),
+        description: feature.name,
+        domain: { name: domainName(feature.name) },
+        initialValue: 'unspecified'
+    }));
+
     return {
+        globalFeatures,
         assemblies,
         modules,
         domains
@@ -78,7 +96,8 @@ function completeModel(model) {
     return {
         domains,
         modules,
-        assemblies
+        assemblies,
+        globalFeatures: R.values(needs.globalFeatures)
     };
 }
 
@@ -88,45 +107,101 @@ function scanForNeeds(model) {
     let domains = {};
     let modules = {};
     let assemblies = {};
+    let globalFeatures = {};
 
-    for (const module of model.modules) {
+    for (const module of model.modules || []) {
         modules[module.name] = module;
+    }
 
-        for (const variant of module.variants) {
-            for (const value of variant.values) {
+    for (const assembly of model.assemblies || []) {
+        explodeAssemblyRecursively(assembly, assemblies);
+    }
+
+    for (const assembly of R.values(assemblies)) {
+
+        for (const position of R.values(assemblies[assembly.name].positions)) {
+            const isLocal = Boolean(position.variants) || Boolean(position.positions);
+            const generatedModuleName = isLocal ? `${assembly.name} / ${position.name}` : position.name;
+
+            const existingAssembly = R.values(assemblies).find(a => a.name === position.assemblyName);
+
+            if (!existingAssembly) {
+                position.type = position.options ? 'Options' : 'Module';
+                position.moduleName = generatedModuleName;
+                modules[generatedModuleName] = modules[generatedModuleName] || { name: generatedModuleName };
+
+                for (const variant of position.variants || []) {
+                    modules[generatedModuleName].variants = modules[generatedModuleName].variants || [];
+                    modules[generatedModuleName].variants.push(variant)
+                }
+
+
+            } else {
+                position.type = 'Assembly';
+            }
+        }
+    }
+
+    for (const module of R.values(modules)) {
+
+        for (const variant of module.variants || []) {
+            for (const value of variant.values || []) {
                 domains[value.feature] = domains[value.feature] || { name: value.feature };
                 domains[value.feature].values = R.uniq((domains[value.feature].values || []).concat(value.values || []))
 
-                modules[module.name].features = modules[module.name].features || {};
-                modules[module.name].features[value.feature] = {
+                module.features = module.features || {};
+                module.features[value.feature] = {
                     name: value.feature,
                     domain: domains[value.feature]
                 };
             }
         }
-    }
+    }    
 
-    for (const assembly of model.assemblies) {
+    // for (const assembly of R.values(assemblies)) {
+    //     for (const position of R.values(assembly.positions)) {
+    //         const existingAssembly = assemblies[position.assemblyName];
 
-        assemblies[assembly.name] = assemblies[assembly.name] || { name: assembly.name, positions: {}, attributes: {} };
+    //         if (!existingAssembly) {
+    //             const existingModule = modules[position.moduleName];
 
-        for (const position of assembly.positions) {
-            assemblies[assembly.name].positions[position.name] = position;
+    //             for (const feature of R.values(existingModule.features)) {
+    //                 const type = domainTypeFromValues(domains[feature.name].values);
+    //                 const aggregation = ['Integer', 'Float'].find(x => x === type) ? 'Sum' : 'Equal';
+                    
+    //                 assembly.attributes[feature.name] = assembly.attributes[feature.name] || { name: feature.name, aggregation, aggregateList: [] };
+    //                 assembly.attributes[feature.name].aggregateList.push({
+    //                     position: position.name,
+    //                     feature: feature.name
+    //                 });
+    //             }
+    //         }
+    //     }
+    // }
 
-            const existingAssembly = model.assemblies.find(a => a.name === position.name);
+    // for (const assembly of R.values(assemblies)) {
+    //     for (const position of R.values(assembly.positions)) {
+    //         const existingAssembly = assemblies[position.name];
 
-            if (!existingAssembly) {
-                modules[position.name] = modules[position.name] || { name: position.name };
-                assemblies[assembly.name].positions[position.name].type = 'Module';
+    //         if (existingAssembly) {
+    //             for (const attribute of R.values(existingAssembly.attributes)) {
+    //                 assembly.attributes[attribute.name] = assembly.attributes[attribute.name] || { name: attribute.name, aggregation: 'Equal', aggregateList: [] };
+    //                 assembly.attributes[attribute.name].aggregateList.push({
+    //                     position: position.name,
+    //                     attribute: attribute.name
+    //                 });
+    //             }
+    //         }
+    //     }
+    // }
 
-                const existingModule = modules[position.name];
+    for (const module of R.values(modules)) {
+        for (const feature of R.values(module.features)) {
+            const isGlobal = Boolean((model.globalFeatures || []).find(f => f === feature.name));
 
-                for (const feature of R.values(existingModule.features)) {
-                    assemblies[assembly.name].attributes[feature.name] = { name: feature.name };
-                }
-
-            } else {
-                assemblies[assembly.name].positions[position.name].type = 'Assembly';
+            if (isGlobal) {
+                module.features[feature.name] = undefined;
+                globalFeatures[feature.name] = feature;
             }
         }
     }
@@ -135,33 +210,35 @@ function scanForNeeds(model) {
         assemblies,
         modules,
         domains,
+        globalFeatures
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+function explodeAssemblyRecursively(assembly, buffer = {}) {
+    buffer[assembly.name] = buffer[assembly.name] || { name: assembly.name, positions: {}, attributes: {} };
+
+    for (const positionName of assembly.positionNames || []) {
+        buffer[assembly.name].positions[positionName] = { name: positionName, assemblyName: positionName };
+    }
+
+    for (const position of assembly.positions || []) {
+        buffer[assembly.name].positions[position.name] = { ...position, assemblyName: position.name };
+    }
+    
+    const subAssemblies = R.values(assembly.positions).filter(p => Boolean(p.positions));
+
+    for (const subAssembly of subAssemblies) {
+        const generatedAssemblyName = `${assembly.name} / ${subAssembly.name}`;
+        buffer[assembly.name].positions[subAssembly.name].assemblyName = generatedAssemblyName;
+        explodeAssemblyRecursively({ ...subAssembly, name: generatedAssemblyName }, buffer);    
     }
 }
 
 // ----------------------------------------------------------------------------
 
 function completeDomains(domains) {
-    
-    function domainTypeFromValues(values) {
-        if (!values || values.length === 0) return 'String';
-    
-        const isInteger = x => {
-            return Number.isInteger(Number(x)) || R.all(Number.isInteger, x.split('..').map(Number));
-        }
-    
-        const isFloat = x => {
-            return !Number.isNaN(Number(x)) || R.all(x => !Number.isNaN(x), x.split('..').map(Number));
-        }
-    
-        if (R.all(isInteger, values)) return 'Integer';
-        if (R.all(isFloat, values)) return 'Float';
-    
-        if (R.all(x => x === 'Yes' || x === 'No', values)) return 'Boolean';
-    
-        if (values.length > 0) return 'Enum';
-    
-        return 'String';
-    }
 
     return R.values(domains).map(domain => {
         
@@ -176,12 +253,33 @@ function completeDomains(domains) {
     });
 }
 
+function domainTypeFromValues(values) {
+    if (!values || values.length === 0) return 'String';
+
+    const isInteger = x => {
+        return Number.isInteger(Number(x)) || R.all(Number.isInteger, x.split('..').map(Number));
+    }
+
+    const isFloat = x => {
+        return !Number.isNaN(Number(x)) || R.all(x => !Number.isNaN(x), x.split('..').map(Number));
+    }
+
+    if (R.all(isInteger, values)) return 'Integer';
+    if (R.all(isFloat, values)) return 'Float';
+
+    if (R.all(x => x === 'Yes' || x === 'No', values)) return 'Boolean';
+
+    if (values.length > 0) return 'Enum';
+
+    return 'String';
+}
+
 // ----------------------------------------------------------------------------
 
 function completeModules(modules) {
     return R.values(modules).map(module => ({
         ...module,
-        features: R.values(module.features),
+        features: R.values(module.features).filter(f => f !== undefined),
         variants: R.values(module.variants)
     }));
 }

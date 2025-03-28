@@ -480,9 +480,10 @@ async function upsertSimplifiedModel(parent, args, context, info) {
     const model = simplifiedModelMapper.convertSimplifiedModel(args.model);
 
     await upsertDomains(parent, model, context, info);
+    await upsertGlobalFeatures(parent, { features: model.globalFeatures }, context, info);
     await upsertModules(parent, model, context, info);
     await upsertAssemblies(parent, model, context, info);
-
+    
     return model;
 }
 

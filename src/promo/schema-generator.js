@@ -35,6 +35,7 @@ async function generateSchema() {
         enum PositionType {
             Module
             Assembly
+            Options
         }
 
         enum QtyType {
@@ -447,40 +448,86 @@ async function generateSchema() {
 
         # Simplified model
 
+        """Definition of the simplified Product Model. \n\n
+           All names are expected to be human-friendly. Names will be used to: \n
+            - generate technical names, example: "Engine" module will become "engine_module", "Power" feature will become "power_feature", "power_domain" \n
+            - set the descriptions \n
+            - connect things, like: position with module/assembly, feature with domain, ...
+        """
         input SimplifiedModel {
+            """List of modules"""
             modules: [SimplifiedModule]
+
+            """List of assemblies"""
             assemblies: [SimplifiedAssembly]
+
+            """List of features that should be global. Actual feature definition is extracted from module variants"""
+            globalFeatures: [String]
         }
 
+        """Definition of the simplified module. Module can be used as assembly position. It has variants representing different possible values for that position.\n\n
+           Behavior:\n
+           - *features*: will be generated automatically by scanning all the features in the provided variants\n
+           - *domains*: a domain will be generated for each feature; the domain type will be determined by variant values; domain elements will be generated from variant values\n
+        """
         input SimplifiedModule {
+            """Human-friendly name of the module (example: "Car Body")"""
             name: String!
-            features: [SimplifiedModuleFeature]
+
+            """List of variants"""
             variants: [SimplifiedModuleVariant]
         }
 
-        input SimplifiedModuleFeature {
-            name: String!
-            domain: String
-        }
 
+        """Definition of the simplified module variant. Variant is a possible value of the position realized by the module.
+        """
         input SimplifiedModuleVariant {
+            """Human-friendly name of the variant (example: "Economic")"""
             name: String!
+
+            """List of variant values"""
             values: [SimplifiedModuleVariantValues]
+
+            isNonStandard: Boolean
         }
 
+        """Definition of the simplified module variant value. It specifies the list of values of a single feature of a given module variant
+        """
         input SimplifiedModuleVariantValues {
+            """Human-friendly name of the feature (example: "Size"). The feature name will be used to generate domains and aggregation attributes in assemblies."""            
             feature: String!
+            
+            """List of values (example: ["Small", "Medium", "Large"])"""
             values: [String]
         }
 
+        """Definition of the simplified assembly."""
         input SimplifiedAssembly {
+            """Human-friendly name of the assembly (example: "Car")"""
             name: String!
+            
+            """List of position names. Names will be used to select the position type and realizing object:\n
+            - if the model defines an assembly with the same name as position, the this assembly will be used to realize the position \n
+            - otherwise the module with the same name as position will be used\n
+            - if the module doesn't exist, it will be created with no variants
+            """
+            positionNames: [String]
+
+            """List of positions"""
             positions: [SimplifiedAssemblyPosition]
         }
 
         input SimplifiedAssemblyPosition {
             name: String!
+            variants: [SimplifiedModuleVariant]
+            positions: [SimplifiedAssemblyPosition]
+
+            options: Boolean
+
+            """List of features. It will be used to generate Equals aggregation for all assembly positions. Nested assemblies will also be included"""
+            unifiers: [String]
         }
+
 
         #######################################################################
 
