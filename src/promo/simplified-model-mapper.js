@@ -114,7 +114,7 @@ function scanForNeeds(model) {
     }
 
     for (const assembly of model.assemblies || []) {
-        explodeAssemblyRecursively(assembly, assemblies);
+        explodeAssemblyRecursively(assembly, null, assemblies);
     }
 
     for (const assembly of R.values(assemblies)) {
@@ -158,42 +158,45 @@ function scanForNeeds(model) {
         }
     }    
 
-    // for (const assembly of R.values(assemblies)) {
-    //     for (const position of R.values(assembly.positions)) {
-    //         const existingAssembly = assemblies[position.assemblyName];
+    for (const assembly of R.values(assemblies)) {
+        for (const position of R.values(assembly.positions)) {
+            const existingAssembly = assemblies[position.assemblyName];
 
-    //         if (!existingAssembly) {
-    //             const existingModule = modules[position.moduleName];
+            if (!existingAssembly) {
+                const existingModule = modules[position.moduleName];
 
-    //             for (const feature of R.values(existingModule.features)) {
-    //                 const type = domainTypeFromValues(domains[feature.name].values);
-    //                 const aggregation = ['Integer', 'Float'].find(x => x === type) ? 'Sum' : 'Equal';
-                    
-    //                 assembly.attributes[feature.name] = assembly.attributes[feature.name] || { name: feature.name, aggregation, aggregateList: [] };
-    //                 assembly.attributes[feature.name].aggregateList.push({
-    //                     position: position.name,
-    //                     feature: feature.name
-    //                 });
-    //             }
-    //         }
-    //     }
-    // }
+                for (const feature of R.values(existingModule.features)) {
+                    if (assembly.unifiers.find(u => u === feature.name)) {
+                        const aggregation ='Equal';
+                        
+                        assembly.attributes[feature.name] = assembly.attributes[feature.name] || { name: feature.name, aggregation, aggregateList: [] };
+                        assembly.attributes[feature.name].aggregateList.push({
+                            position: position.name,
+                            feature: feature.name
+                        });
+                    }
+                }
+            }
+        }
+    }
 
-    // for (const assembly of R.values(assemblies)) {
-    //     for (const position of R.values(assembly.positions)) {
-    //         const existingAssembly = assemblies[position.name];
+    for (const assembly of R.values(assemblies)) {
+        for (const position of R.values(assembly.positions)) {
+            const existingAssembly = assemblies[position.assemblyName];
 
-    //         if (existingAssembly) {
-    //             for (const attribute of R.values(existingAssembly.attributes)) {
-    //                 assembly.attributes[attribute.name] = assembly.attributes[attribute.name] || { name: attribute.name, aggregation: 'Equal', aggregateList: [] };
-    //                 assembly.attributes[attribute.name].aggregateList.push({
-    //                     position: position.name,
-    //                     attribute: attribute.name
-    //                 });
-    //             }
-    //         }
-    //     }
-    // }
+            if (existingAssembly) {
+                for (const attribute of R.values(existingAssembly.attributes)) {
+                    if (assembly.unifiers.find(u => u === attribute.name)) {
+                        assembly.attributes[attribute.name] = assembly.attributes[attribute.name] || { name: attribute.name, aggregation: 'Equal', aggregateList: [] };
+                        assembly.attributes[attribute.name].aggregateList.push({
+                            position: position.name,
+                            attribute: attribute.name
+                        });
+                    }
+                }
+            }
+        }
+    }
 
     for (const module of R.values(modules)) {
         for (const feature of R.values(module.features)) {
@@ -216,8 +219,13 @@ function scanForNeeds(model) {
 
 // ----------------------------------------------------------------------------
 
-function explodeAssemblyRecursively(assembly, buffer = {}) {
-    buffer[assembly.name] = buffer[assembly.name] || { name: assembly.name, positions: {}, attributes: {} };
+function explodeAssemblyRecursively(assembly, parent, buffer = {}) {
+    buffer[assembly.name] = buffer[assembly.name] || { 
+        name: assembly.name, 
+        positions: {}, 
+        attributes: {}, 
+        unifiers: (assembly.unifiers || []).concat(parent?.unifiers || [])
+    };
 
     for (const positionName of assembly.positionNames || []) {
         buffer[assembly.name].positions[positionName] = { name: positionName, assemblyName: positionName };
@@ -232,7 +240,7 @@ function explodeAssemblyRecursively(assembly, buffer = {}) {
     for (const subAssembly of subAssemblies) {
         const generatedAssemblyName = `${assembly.name} / ${subAssembly.name}`;
         buffer[assembly.name].positions[subAssembly.name].assemblyName = generatedAssemblyName;
-        explodeAssemblyRecursively({ ...subAssembly, name: generatedAssemblyName }, buffer);    
+        explodeAssemblyRecursively({ ...subAssembly, name: generatedAssemblyName }, buffer[assembly.name], buffer);    
     }
 }
 
@@ -280,7 +288,7 @@ function completeModules(modules) {
     return R.values(modules).map(module => ({
         ...module,
         features: R.values(module.features).filter(f => f !== undefined),
-        variants: R.values(module.variants)
+        variants: [ /*{ name: 'NONE' }*/ ].concat(R.values(module.variants))
     }));
 }
 
@@ -290,7 +298,8 @@ function completeAssemblies(assemblies) {
     return R.values(assemblies).map(assembly => ({
         ...assembly,
         positions: R.values(assembly.positions),
-        attributes: R.values(assembly.attributes)
+        attributes: R.values(assembly.attributes),
+        unifiers: assembly.unifiers
     }))
 }
 

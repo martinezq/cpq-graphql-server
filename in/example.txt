@@ -2,105 +2,123 @@ mutation TactonSolution {
   upsertSimplifiedModel(model: {
     globalFeatures: ["Cost", "Provided By", "Multiplier"]
     assemblies: [ 
-      { name: "Scope", positions: [
-        { name: "Design", positions: [
-          { name: "Solution Design Document", variants: [
-            { name: "Simplified Solution Design", values: [ { feature: "Project Complexity", values: [ "Low" ]}, { feature: "Cost", values: [ "24" ]}]},
-            { name: "Full Solution Design", values: [ { feature: "Project Complexity", values: [ "Medium", "High" ]}, { feature: "Cost", values: [ "40..80" ]}]}
+      { name: "Project", positions: [
+        { name: "Requirements", positions: [
+          { name: "Workflow", positions: [
+            { name: "I want to create orders from CPQ", variants: [ { name: "No"}, { name: "Yes"} ]},
+            { name: "I want to track my orders in CPQ", variants: [ { name: "No"}, { name: "Yes"} ]},
+            { name: "My workflow includes CRM", variants: [ { name: "No"}, { name: "Yes"} ]},
+          ]},
+          { name: "Integrations", positions: [
+            { name: "I want to integrate with my ERP", variants: [ { name: "No"}, { name: "Yes"} ]},
+            { name: "I want to integrate with my CRM", variants: [ { name: "No"}, { name: "Yes"} ]},
+          ]}          
+        ]}        
+        { name: "Scope", positions: [
+          { name: "Design", positions: [
+            { name: "Solution Design Document", variants: [
+              { name: "Simplified Solution Design", values: [ { feature: "Project Complexity", values: [ "Low" ]}, { feature: "Cost", values: [ "24" ]}]},
+              { name: "Full Solution Design", values: [ { feature: "Project Complexity", values: [ "Medium", "High" ]}, { feature: "Cost", values: [ "40..80" ]}]}
+            ]}
           ]}
-        ]}
-        { name: "Modeling", positions: [] }, 
-        { name: "Pricing ", positions: [] },
-        { name: "Workflow", positions: [
-          { name: "Order Management", positions: [
-              { name: "Create Order", positions: [
-                { name: "Method", variants: [
-                  { name: "Manual", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "10" ]}] },
-                  { name: "Automatic", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "20" ]}] }  
-                ] },
-                { name: "Status Information", variants: [
+          { name: "Modeling", positions: [] }, 
+          { name: "Pricing ", positions: [] },
+          { name: "Workflow", positions: [
+            { name: "Order Management", positions: [
+                { name: "Create Order", positions: [
+                  { name: "Method", variants: [
+                    { name: "Manual", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "10" ]}] },
+                    { name: "Automatic", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "20" ]}] }  
+                  ] },
+                  { name: "Status Information", variants: [
+                    { name: "None", values: [ { feature: "Provided By", values: ["N/A"]}, { feature: "Cost", values: [ "0" ]}] }
+                    { name: "Basic", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "10" ]}] }, # Basic data: order status, error message, update date on header level
+                    { name: "Extended", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "20" ]}] }  # Extended data: order line level status, update date, delivery date, etc
+                  ] }
+                ]}
+
+              ]},          
+          ] },
+          { name: "Integrations", positions: [
+            { name: "CRM", unifiers: ["Middleware"], positions: [
+              { name: "CRM Type", variants: [
+                { name: "Salesforce", values: [ { feature: "Provided By", values: ["Customer"]}, { feature: "Middleware", values: [ "trampolines", "workato", "other"]}] },
+                { name: "Microsoft Dynamics", values: [ { feature: "Provided By", values: ["Customer"]}, { feature: "Middleware", values: [ "trampolines", "workato", "other"]}] }
+                { name: "Other ", values: [ { feature: "Provided By", values: ["Customer"]}, { feature: "Middleware", values: [ "other", "workato"]}] }
+              ]},
+              { name: "Master Data", positions: [
+                { name: "Variant", variants: [
+                  { name: "Accounts", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Multiplier", values: [ "1" ]}] },
+                  { name: "Accounts, Contacts", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Multiplier", values: [ "1.5" ]}] }
+                  { name: "Other (non standard) ", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Multiplier", values: [ "2" ]} ], isNonStandard: true }
+                ]},
+                { name: "Endpoint Configuration", variants: [
+                  { name: "Endpoint Configuration", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "10" ]}] }
+                ]},
+                { name: "Implementation", variants: [
+                  { name: "Trampolines (by Tacton)", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "20" ]}, { feature: "Middleware", values: [ "trampolines" ]}] },
+                  { name: "Connect to Anything (by Tacton)", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "20" ]}, { feature: "Middleware", values: [ "workato" ]}] },
+                  { name: "Connect to Anything (by Customer)", values: [ { feature: "Provided By", values: ["Customer"]}, { feature: "Cost", values: [ "20" ]}, { feature: "Middleware", values: [ "workato" ]}] },
+                  { name: "Selected Middleware (by Customer)", values: [ { feature: "Provided By", values: ["Customer"]}, { feature: "Cost", values: [ "0" ]}, { feature: "Middleware", values: [ "other" ]}] }
+                ]},
+                { name: "Statement", variants: [
+                  { name: "Readiness Statement" }, # if CRM is not ready, then ....
+                ]}              
+              ] },
+              { name: "Transactional Data", positions: [
+                { name: "Variant", variants: [
+                  { name: "Opportunity", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Multiplier", values: [ "1" ]}] },
+                  { name: "Opportunity, Quote (header)", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Multiplier", values: [ "1.5" ]}] }
+                  { name: "Opportunity, Quote, Line Items", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Multiplier", values: [ "1.7" ]}] }
+                  { name: "Other (non standard) ", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Multiplier", values: [ "2" ]} ], isNonStandard: true }
+                ]},
+                { name: "Endpoint Configuration", variants: [
+                  { name: "Endpoint Configuration", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "10" ]}] }
+                ]},
+                { name: "Implementation", variants: [
+                  { name: "Trampolines (by Tacton)", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "20" ]}, { feature: "Middleware", values: [ "trampolines" ]}] },
+                  { name: "Connect to Anything (by Tacton)", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "20" ]}, { feature: "Middleware", values: [ "workato" ]}] },
+                  { name: "Connect to Anything (by Customer)", values: [ { feature: "Provided By", values: ["Customer"]}, { feature: "Cost", values: [ "20" ]}, { feature: "Middleware", values: [ "workato" ]}] },
+                  { name: "Selected Middleware (by Customer)", values: [ { feature: "Provided By", values: ["Customer"]}, { feature: "Cost", values: [ "0" ]}, { feature: "Middleware", values: [ "other" ]}] }
+                ]},
+                { name: "Statement", variants: [
+                  { name: "Readiness Statement" }, # if CRM is not ready, then ....
+                ]}              
+              ]
+              }
+            ]}
+            { name: "ERP", positions: [ 
+              { name: "Order", positions: [
+                { name: "Variant", variants: [
+                  { name: "Send Order Only", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Multiplier", values: [ "1" ]}] },
+                  { name: "Send Order, Receive Status (header)", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Multiplier", values: [ "1.5" ]}] }
+                  { name: "Send Order, Receive Status (per line item)", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Multiplier", values: [ "2" ]}] }
+                ]},
+                { name: "Endpoint Configuration", variants: [
+                  { name: "Endpoint Configuration", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "40" ]}] }
+                ]},
+                { name: "Documentation", variants: [
                   { name: "None", values: [ { feature: "Provided By", values: ["N/A"]}, { feature: "Cost", values: [ "0" ]}] }
-                  { name: "Basic", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "10" ]}] }, # Basic data: order status, error message, update date on header level
-                  { name: "Extended", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "20" ]}] }  # Extended data: order line level status, update date, delivery date, etc
-                ] }
-              ]}
+                  { name: "Technical Specification", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "40" ]}] }
+                ]},
+                { name: "Implementation", variants: [
+                  { name: "Connect to Anything (by Tacton)", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "40" ]}, { feature: "Middleware", values: [ "workato" ]}] },
+                  { name: "Connect to Anything (by Customer)", values: [ { feature: "Provided By", values: ["Customer"]}, { feature: "Cost", values: [ "20" ]}, { feature: "Middleware", values: [ "workato" ]}] },
+                  { name: "Selected Middleware (by Customer)", values: [ { feature: "Provided By", values: ["Customer"]}, { feature: "Cost", values: [ "0" ]}, { feature: "Middleware", values: [ "other" ]}] }
+                ]},
+                { name: "Statement", variants: [
+                  { name: "Readiness Statement" }, # if ERP is not ready, then ....
+                ]}              
 
-            ]},          
-        ] },
-        { name: "Integrations", positions: [
-          { name: "CRM", positions: [
-            { name: "Master Data", positions: [
-              { name: "Variant", variants: [
-                { name: "Accounts", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Multiplier", values: [ "1" ]}] },
-                { name: "Accounts, Contacts", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Multiplier", values: [ "1.5" ]}] }
-                { name: "Other (non standard) ", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Multiplier", values: [ "2" ]} ], isNonStandard: true }
               ]},
-              { name: "Endpoint Configuration", variants: [
-                { name: "Endpoint Configuration", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "10" ]}] }
-              ]},
-              { name: "Implementation", variants: [
-                { name: "Trampolines (by Tacton)", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "20" ]}, { feature: "Middleware", values: [ "trampolines" ]}] },
-                { name: "Connect to Anything (by Tacton)", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "20" ]}, { feature: "Middleware", values: [ "workato" ]}] },
-                { name: "Connect to Anything (by Customer)", values: [ { feature: "Provided By", values: ["Customer"]}, { feature: "Cost", values: [ "20" ]}, { feature: "Middleware", values: [ "workato" ]}] },
-                { name: "Selected Middleware (by Customer)", values: [ { feature: "Provided By", values: ["Customer"]}, { feature: "Cost", values: [ "0" ]}, { feature: "Middleware", values: [ "other" ]}] }
-              ]},
-              { name: "Statement", variants: [
-                { name: "Readiness Statement" }, # if CRM is not ready, then ....
-              ]}              
-            ] },
-            { name: "Transactional Data", positions: [
-              { name: "Variant", variants: [
-                { name: "Opportunity", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Multiplier", values: [ "1" ]}] },
-                { name: "Opportunity, Quote (header)", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Multiplier", values: [ "1.5" ]}] }
-                { name: "Opportunity, Quote, Line Items", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Multiplier", values: [ "1.7" ]}] }
-                { name: "Other (non standard) ", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Multiplier", values: [ "2" ]} ], isNonStandard: true }
-              ]},
-              { name: "Endpoint Configuration", variants: [
-                { name: "Endpoint Configuration", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "10" ]}] }
-              ]},
-              { name: "Implementation", variants: [
-                { name: "Trampolines (by Tacton)", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "20" ]}, { feature: "Middleware", values: [ "trampolines" ]}] },
-                { name: "Connect to Anything (by Tacton)", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "20" ]}, { feature: "Middleware", values: [ "workato" ]}] },
-                { name: "Connect to Anything (by Customer)", values: [ { feature: "Provided By", values: ["Customer"]}, { feature: "Cost", values: [ "20" ]}, { feature: "Middleware", values: [ "workato" ]}] },
-                { name: "Selected Middleware (by Customer)", values: [ { feature: "Provided By", values: ["Customer"]}, { feature: "Cost", values: [ "0" ]}, { feature: "Middleware", values: [ "other" ]}] }
-              ]},
-              { name: "Statement", variants: [
-                { name: "Readiness Statement" }, # if CRM is not ready, then ....
-              ]}              
-            ]
-            }
-          ]}
-          { name: "ERP", positions: [ 
-            { name: "Order", positions: [
-              { name: "Variant", variants: [
-                { name: "Send Order Only", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Multiplier", values: [ "1" ]}] },
-                { name: "Send Order, Receive Status (header)", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Multiplier", values: [ "1.5" ]}] }
-                { name: "Send Order, Receive Status (per line item)", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Multiplier", values: [ "2" ]}] }
-              ]},
-              { name: "Endpoint Configuration", variants: [
-                { name: "Endpoint Configuration", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "40" ]}] }
-              ]},
-              { name: "Documentation", variants: [
-                { name: "None", values: [ { feature: "Provided By", values: ["N/A"]}, { feature: "Cost", values: [ "0" ]}] }
-                { name: "Technical Specification", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "40" ]}] }
-              ]},
-              { name: "Implementation", variants: [
-                { name: "Connect to Anything (by Tacton)", values: [ { feature: "Provided By", values: ["Tacton"]}, { feature: "Cost", values: [ "40" ]}, { feature: "Middleware", values: [ "workato" ]}] },
-                { name: "Connect to Anything (by Customer)", values: [ { feature: "Provided By", values: ["Customer"]}, { feature: "Cost", values: [ "20" ]}, { feature: "Middleware", values: [ "workato" ]}] },
-                { name: "Selected Middleware (by Customer)", values: [ { feature: "Provided By", values: ["Customer"]}, { feature: "Cost", values: [ "0" ]}, { feature: "Middleware", values: [ "other" ]}] }
-              ]},
-              { name: "Statement", variants: [
-                { name: "Readiness Statement" }, # if ERP is not ready, then ....
-              ]}              
-
-            ]},
-            { name: "Price List", positions: [
-              { name: "Documentation", variants: [
-                { name: "None" }
-              ]}
-            ]}      
-          ]}
-        ]}, 
+              { name: "Price List", positions: [
+                { name: "Documentation", variants: [
+                  { name: "None" }
+                ]}
+              ]}      
+            ]}
+          ]}, 
+        ]}
       ]}
     ]
   })
